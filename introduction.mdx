@@ -1,0 +1,98 @@
+---
+title: Introduction
+description: AI-powered virtual try-on SDK for fashion brands. Drop it into any website in minutes.
+---
+
+## What is it?
+
+`@gennoctua/personalize-core` is a headless JavaScript SDK that adds AI virtual try-on to any brand website. It handles everything — photo upload, face detection, AI generation, result display — with just a few lines of code.
+
+**You bring:** your UI, your product catalog, your website.
+**We bring:** the AI pipeline, the models, the backend.
+
+---
+
+## Who is this for?
+
+| I am... | Read this |
+|---|---|
+| A **product manager** evaluating the SDK | [Product Overview](/guides/product-overview) |
+| A **developer** integrating the SDK | [Developer Guide](/sdk/developer-guide) |
+| A **full-stack developer** (have frontend + backend) | [Full-Stack Integration](/integration/fullstack) |
+| A **frontend-only developer** (no backend) | [Frontend-Only Integration](/integration/frontend-only) |
+| A **vibe coder** using AI to build websites | [Vibe Coder Guide](/guides/vibe-coder) |
+| Looking for a specific method or event | [API Reference](/sdk/api-reference) |
+| Checking supported product types | [Supported Products](/sdk/supported-products) |
+
+---
+
+## How it works
+
+<Steps>
+  <Step title="Install the SDK">
+    Add via npm for React/Vue/Vite projects, or use the CDN script tag for plain HTML, Shopify, and Webflow.
+  </Step>
+  <Step title="Initialize with your credentials">
+    Use a brand key (frontend-only) or your own backend proxy (full-stack). See [Which integration should I use?](/integration/choose)
+  </Step>
+  <Step title="Let shoppers upload photos">
+    Call `sdk.ingestImages()` — the SDK automatically picks the best photo using on-device AI.
+  </Step>
+  <Step title="Run the try-on">
+    Call `sdk.personalize()` with a product image URL and type — the AI generates the result in ~20 seconds.
+  </Step>
+  <Step title="Show the result">
+    Display the returned image URL however you like — modal, side-by-side, or inline on the product page.
+  </Step>
+</Steps>
+
+---
+
+## Two integration modes
+
+### Frontend-Only (no backend needed)
+
+<CodeGroup>
+```ts npm
+import { Personalize } from "@gennoctua/personalize-core";
+
+const sdk = await Personalize.init({
+  auth: {
+    publicKey: "gn_pk_yourbrand_xxx"
+  }
+});
+```
+
+```html Script tag
+<script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk@main/dist/cdn/personalize.min.global.js"></script>
+<script>
+  const sdk = await window.Personalize.init({
+    auth: {
+      publicKey: "gn_pk_yourbrand_xxx"
+    }
+  });
+</script>
+```
+</CodeGroup>
+
+### Full-Stack (you have a backend)
+
+```ts
+const sdk = await Personalize.init({
+  auth: {
+    proxyUrl: "https://yourbrand.com/api/tryon",
+    getToken: async () => await getSessionToken()
+  }
+});
+```
+
+---
+
+## Package contents
+
+| File | What it is |
+|---|---|
+| `dist/index.js` | ESM package for bundlers (React, Vue, Vite) |
+| `dist/index.cjs` | CommonJS package for Node.js |
+| `dist/cdn/personalize.min.global.js` | CDN bundle for `<script>` tag |
+| `dist/index.d.ts` | TypeScript type definitions |
