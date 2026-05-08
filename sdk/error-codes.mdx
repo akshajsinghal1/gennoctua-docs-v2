@@ -11,10 +11,10 @@ The SDK throws `SDKError` instances with a `code` property. Always check `err.co
 import { SDKError } from "@gennoctua/personalize-core";
 
 try {
-  const result = await sdk.personalize({ imageUrl, productType });
+  const result = await sdk.personalize({ imageUrl, productType, gender: "female" });
 } catch (err) {
   if (err instanceof SDKError) {
-    console.log(err.code);        // e.g. "JOB_TIMEOUT"
+    console.log(err.code);        // e.g. "PERSONALIZATION_JOB_TIMEOUT"
     console.log(err.message);     // human-readable description
     console.log(err.recoverable); // true = user can retry
     console.log(err.details);     // additional debug info
@@ -43,7 +43,7 @@ try {
 case "AUTH_INVALID":
   // In frontend-only mode: SDK will auto-refresh the token next call
   // In full-stack mode: call getToken() to get a fresh token
-  await sdk.personalize({ imageUrl, productType }); // retry
+  await sdk.personalize({ imageUrl, productType, gender: "female" }); // retry
   break;
 ```
 
@@ -221,6 +221,7 @@ async function runTryOn() {
     const result = await sdk.personalize({
       imageUrl: productImageUrl,
       productType: "sunglasses",
+      gender: "female",
     });
     showResult(result.imageUrl);
   } catch (err) {

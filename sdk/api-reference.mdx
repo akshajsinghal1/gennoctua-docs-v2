@@ -38,9 +38,10 @@ sdk.ingestImages(
 **SelectionProgress:**
 ```ts
 {
-  message: string;  // human-readable status e.g. "Scanning faces 3 of 14..."
-  step: number;     // current step
-  total: number;    // total steps
+  phase: "loading_models" | "categorizing" | "scoring" | "ranking" | "complete";
+  message: string;   // human-readable status e.g. "Scanning faces 3 of 14..."
+  current?: number;  // current item count (when applicable)
+  total?: number;    // total item count (when applicable)
 }
 ```
 

@@ -83,8 +83,9 @@ Fired multiple times during photo processing with the current stage.
   eventName: "profile_pipeline_progress",
   metadata: {
     message: string,  // e.g. "Scanning faces 3 of 14..."
-    step: number,
-    total: number,
+    phase: "loading_models" | "categorizing" | "scoring" | "ranking" | "complete",
+    current?: number,
+    total?: number,
   }
 }
 ```

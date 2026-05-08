@@ -43,7 +43,7 @@ This means:
 ### Detecting a Cache Hit
 
 ```ts
-const result = await sdk.personalize({ imageUrl, productType });
+const result = await sdk.personalize({ imageUrl, productType, gender: "female" });
 
 if (result.cacheHit) {
   console.log("Instant — loaded from cache!");

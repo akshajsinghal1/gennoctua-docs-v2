@@ -38,19 +38,19 @@ Copy and paste this code anywhere on your product page. Change the three values 
   <p>Upload your photos to try this on:</p>
   <input id="photos" type="file" multiple accept="image/*" webkitdirectory />
   <br /><br />
-  <button id="tryOnBtn" disabled>âœ¨ Try On</button>
+  <button id="tryOnBtn" disabled>Try On</button>
   <p id="status"></p>
   <img id="result" style="display:none; max-width:500px; border-radius:8px" />
 </div>
 
 <script>
-  // â† CHANGE THIS: your brand key from Gennoctua
+  // CHANGE THIS: your brand key from Gennoctua
   const BRAND_KEY = "gn_pk_yourbrand_xxx";
 
-  // â† CHANGE THIS: the URL of the product image
+  // CHANGE THIS: the URL of the product image
   const PRODUCT_IMAGE_URL = "https://yourbrand.com/product.jpg";
 
-  // â† CHANGE THIS: what type of product it is (see list below)
+  // CHANGE THIS: what type of product it is (see list below)
   const PRODUCT_TYPE = "sunglasses";
 
   // --- Don't change anything below this line ---
@@ -65,7 +65,7 @@ Copy and paste this code anywhere on your product page. Change the three values 
       document.getElementById("status").textContent = p.message;
     });
     if (summary.availableCategories.length > 0) {
-      document.getElementById("status").textContent = "âœ“ Ready! Click Try On.";
+      document.getElementById("status").textContent = "Ready! Click Try On.";
       document.getElementById("tryOnBtn").disabled = false;
     } else {
       document.getElementById("status").textContent = "Couldn't find a face in your photos. Try different ones.";
@@ -78,7 +78,8 @@ Copy and paste this code anywhere on your product page. Change the three values 
     try {
       const result = await sdk.personalize({
         imageUrl: PRODUCT_IMAGE_URL,
-        productType: PRODUCT_TYPE
+        productType: PRODUCT_TYPE,
+        gender: "female"
       });
       document.getElementById("result").src = result.imageUrl;
       document.getElementById("result").style.display = "block";
@@ -98,19 +99,19 @@ Copy and paste this code anywhere on your product page. Change the three values 
 ### 1. Brand Key
 ```js
 const BRAND_KEY = "gn_pk_yourbrand_xxx";
-//                 â†‘ replace with your actual brand key from Gennoctua
+//                 replace with your actual brand key from Gennoctua
 ```
 
 ### 2. Product Image URL
 ```js
 const PRODUCT_IMAGE_URL = "https://yourbrand.com/product.jpg";
-//                         â†‘ right-click the product image â†’ "Copy image address"
+//                         right-click the product image -> "Copy image address"
 ```
 
 ### 3. Product Type
 ```js
 const PRODUCT_TYPE = "sunglasses";
-//                    â†‘ pick from the list below
+//                    pick from the list below
 ```
 
 **Product type options:**
@@ -160,7 +161,7 @@ Please:
 <AccordionGroup>
   <Accordion title="Shopify">
     1. Go to your Shopify admin
-    2. Online Store â†’ Themes â†’ Edit code
+    2. Online Store -> Themes -> Edit code
     3. Open `sections/product.liquid`
     4. Find the closing `</div>` near the product image
     5. Paste the code there
@@ -195,7 +196,7 @@ Please:
 1. Open your page in a browser
 2. Click the file input and select a folder with your photos
 3. Wait a few seconds while it scans the photos
-4. When it says "Ready! Click Try On" â€” click the button
+4. When it says "Ready! Click Try On" - click the button
 5. Wait ~20 seconds
 6. Your try-on image should appear
 
@@ -217,10 +218,10 @@ Please:
     Try clicking the button again. If it keeps failing, check your brand key is correct.
   </Accordion>
   <Accordion title="Nothing happens when I click the button">
-    Make sure you uploaded photos first and waited for the "âœ“ Ready!" message.
+    Make sure you uploaded photos first and waited for the "Ready!" message.
   </Accordion>
   <Accordion title="The image URL is broken">
-    Right-click your product image â†’ Copy Image Address â†’ paste that URL as `PRODUCT_IMAGE_URL`.
+    Right-click your product image -> Copy Image Address -> paste that URL as `PRODUCT_IMAGE_URL`.
   </Accordion>
   <Accordion title="Still stuck?">
     Share your code with your AI assistant and ask: "The Gennoctua try-on isn't working. Here is my code: [paste code]. The error is: [paste error message]."

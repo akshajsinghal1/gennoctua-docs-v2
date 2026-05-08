@@ -28,7 +28,7 @@ function TryOnButton() {
   if (!ready) return <p>Loading...</p>;
 
   return (
-    <button onClick={() => sdk!.personalize({ imageUrl, productType: "sunglasses" })}>
+    <button onClick={() => sdk!.personalize({ imageUrl, productType: "sunglasses", gender: "female" })}>
       Try On
     </button>
   );
@@ -59,7 +59,7 @@ const {
 | `ingest` | `(files: FileList) => Promise<void>` | Call with files from a file input |
 | `summary` | `SelectionSummary \| null` | Result of photo selection. `null` before first ingest. |
 | `ingesting` | `boolean` | `true` while photos are being processed |
-| `progress` | `SelectionProgress \| null` | Current progress message and step |
+| `progress` | `SelectionProgress \| null` | Current progress phase/message and optional counts |
 | `error` | `SDKError \| null` | Error from the last ingest attempt |
 | `reset` | `() => void` | Clear the current selection |
 
@@ -67,9 +67,10 @@ const {
 
 ```ts
 {
+  phase: "loading_models" | "categorizing" | "scoring" | "ranking" | "complete";
   message: string;  // e.g. "Scanning faces 3 of 14..."
-  step: number;
-  total: number;
+  current?: number;
+  total?: number;
 }
 ```
 
@@ -154,6 +155,7 @@ const {
 {
   imageUrl: string;         // product image URL (required)
   productType: ProductType; // product type (required)
+  gender: UserGender;       // required for person products, ignored for furniture
   productId?: string;       // for caching/analytics (optional)
 }
 ```
@@ -181,7 +183,7 @@ function TryOnButton({ productImageUrl }: { productImageUrl: string }) {
     <div>
       {!result && (
         <button
-          onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses" })}
+          onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses", gender: "female" })}
           disabled={!canTryOn || loading}
         >
           {loading ? "Generating..." : "Try On"}
@@ -193,7 +195,7 @@ function TryOnButton({ productImageUrl }: { productImageUrl: string }) {
       )}
 
       {error && (
-        <p>Failed: {error.message}. <button onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses" })}>Retry</button></p>
+        <p>Failed: {error.message}. <button onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses", gender: "female" })}>Retry</button></p>
       )}
 
       {result && (
@@ -264,7 +266,7 @@ function TryOnWidget({ productImageUrl }: { productImageUrl: string }) {
       {/* Try On Button */}
       {canTryOn && !result && (
         <button
-          onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses" })}
+          onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses", gender: "female" })}
           disabled={loading}
         >
           {loading ? "Generating (~20s)..." : "✨ Try On"}

@@ -78,7 +78,7 @@ This prevents duplicate jobs if the user clicks the button multiple times while 
 import { SDKError } from "@gennoctua/personalize-core";
 
 try {
-  const result = await sdk.personalize({ imageUrl, productType });
+  const result = await sdk.personalize({ imageUrl, productType, gender: "female" });
 } catch (err) {
   if (err instanceof SDKError && err.code === "RATE_LIMITED_CLIENT") {
     showMessage("Please wait a moment before trying again.");

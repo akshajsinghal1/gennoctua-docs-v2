@@ -6,13 +6,14 @@ description: For developers who have both a frontend and a backend (Next.js, Rea
 ## Overview
 
 In full-stack mode:
-- Your **backend** holds the HP API key (never exposed to the browser)
-- Your **backend** generates short-lived session tokens (1hr JWT)
-- Your **frontend** uses the SDK with those tokens
-- The SDK sends requests to your backend proxy, which forwards to HP
+- Your **backend** holds the HP API key (issued by Gennoctua — never exposed to the browser)
+- Your **backend** holds the `X-Client-Api-Key` (issued by Gennoctua — for calling `ec.gennoctua.com`)
+- Your **frontend** uses the SDK — all requests go through your backend only
+- The browser never calls Gennoctua or HP directly
 
 ```
-Browser (SDK) → Your Backend Proxy → HP AI
+Browser (SDK) → Your Backend → HP AI
+                     └──────→ ec.gennoctua.com (LLM refinement + GCS upload)
 ```
 
 ---
@@ -27,12 +28,13 @@ npm install @gennoctua/personalize-core
 
 ## Step 2 — Backend Setup
 
-### Store your API key
+### Store your keys
 
 Add to your `.env` file:
 ```
-HP_API_KEY=your_hyperpersona_api_key_here
-JWT_SECRET=your_random_secret_here_min_32_chars
+HP_API_KEY=your_hyperpersona_api_key_here       # issued by Gennoctua — forwards to HP
+EC_CLIENT_API_KEY=ec_api_xxx                    # issued by Gennoctua — for ec.gennoctua.com
+JWT_SECRET=your_random_secret_here_min_32_chars # your own secret for signing session tokens
 ```
 
 ### Install backend dependencies
@@ -78,10 +80,13 @@ export default function handler(req, res) {
 
 ### Add proxy endpoints
 
+Your backend must proxy **all** SDK routes. The SDK calls 7 endpoints — 4 go to HP, 3 go to `ec.gennoctua.com`.
+
 <CodeGroup>
 ```js Node/Express
 const jwt = require("jsonwebtoken");
 const HP_BASE = "https://hyperpersona-api-914497143112.us-central1.run.app";
+const EC_BASE = "https://ec.gennoctua.com";
 
 function requireTryonToken(req, res, next) {
   const auth = req.headers.authorization || "";
@@ -94,32 +99,84 @@ function requireTryonToken(req, res, next) {
   }
 }
 
+// ── HP routes (try-on job submit + status) ─────────────────────────────────
+
 // Submit try-on job
 app.post("/api/tryon/submit", requireTryonToken, async (req, res) => {
-  try {
-    const response = await fetch(`${HP_BASE}/api/tryon/submit`, {
-      method: "POST",
-      headers: { "X-API-Key": process.env.HP_API_KEY },
-      body: req,
-    });
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    res.status(502).json({ error: "Upstream error" });
-  }
+  const response = await fetch(`${HP_BASE}/api/tryon/submit`, {
+    method: "POST",
+    headers: { "X-API-Key": process.env.HP_API_KEY },
+    body: req,
+  });
+  const data = await response.json();
+  res.json(data);
 });
 
 // Stream try-on status (SSE)
 app.get("/api/tryon/status/:jobId", requireTryonToken, async (req, res) => {
-  const { jobId } = req.params;
-  const response = await fetch(`${HP_BASE}/api/tryon/status/${jobId}`, {
+  const response = await fetch(`${HP_BASE}/api/tryon/status/${req.params.jobId}`, {
     headers: { "X-API-Key": process.env.HP_API_KEY },
   });
-
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
   response.body.pipe(res);
+});
+
+// Room generation + status
+app.post("/api/tryon/api/gen/generate-room", requireTryonToken, async (req, res) => {
+  const response = await fetch(`${HP_BASE}/api/gen/generate-room`, {
+    method: "POST",
+    headers: { "X-API-Key": process.env.HP_API_KEY },
+    body: req,
+  });
+  res.json(await response.json());
+});
+
+app.get("/api/tryon/api/gen/status/:jobId", requireTryonToken, async (req, res) => {
+  const response = await fetch(`${HP_BASE}/api/gen/status/${req.params.jobId}`, {
+    headers: { "X-API-Key": process.env.HP_API_KEY },
+  });
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  response.body.pipe(res);
+});
+
+// ── ec.gennoctua.com routes (LLM refinement + GCS upload) ──────────────────
+
+const EC_HEADERS = {
+  "X-Client-Api-Key": process.env.EC_CLIENT_API_KEY,
+  "Content-Type": "application/json",
+};
+
+// LLM profile refinement
+app.post("/api/tryon/api/profile/select", requireTryonToken, async (req, res) => {
+  const response = await fetch(`${EC_BASE}/api/profile/select`, {
+    method: "POST",
+    headers: EC_HEADERS,
+    body: JSON.stringify(req.body),
+  });
+  res.json(await response.json());
+});
+
+// LLM room refinement
+app.post("/api/tryon/api/room/select", requireTryonToken, async (req, res) => {
+  const response = await fetch(`${EC_BASE}/api/room/select`, {
+    method: "POST",
+    headers: EC_HEADERS,
+    body: JSON.stringify(req.body),
+  });
+  res.json(await response.json());
+});
+
+// GCS profile upload (multipart)
+app.post("/api/tryon/api/uploads/user-image", requireTryonToken, async (req, res) => {
+  const response = await fetch(`${EC_BASE}/api/uploads/user-image`, {
+    method: "POST",
+    headers: { "X-Client-Api-Key": process.env.EC_CLIENT_API_KEY },
+    body: req,
+  });
+  res.json(await response.json());
 });
 ```
 
@@ -247,6 +304,7 @@ document.getElementById("tryOnBtn").addEventListener("click", async () => {
     const result = await sdk.personalize({
       imageUrl: "https://yourbrand.com/product.jpg",
       productType: "sunglasses",
+      gender: "female",
       productId: "sku-123"
     });
 

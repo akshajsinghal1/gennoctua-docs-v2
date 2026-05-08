@@ -10,10 +10,10 @@ description: Solutions to the most common issues when integrating the SDK.
     You're passing the wrong auth config key. Make sure you use `publicKey`, not `apiKey` or `key`:
 
     ```ts
-    // âŒ Wrong
+    // Wrong
     auth: { apiKey: "gn_pk_..." }
 
-    // âœ… Correct
+    // Correct
     auth: { publicKey: "gn_pk_..." }
     ```
   </Accordion>
@@ -22,10 +22,10 @@ description: Solutions to the most common issues when integrating the SDK.
     Your auth config is missing required fields:
 
     ```ts
-    // Frontend-only â€” needs publicKey
+    // Frontend-only - needs publicKey
     auth: { publicKey: "gn_pk_..." }
 
-    // Full-stack â€” needs proxyUrl AND getToken
+    // Full-stack - needs proxyUrl AND getToken
     auth: {
       proxyUrl: "https://yourbrand.com/api/tryon",
       getToken: async () => "your-jwt-token"
@@ -37,10 +37,10 @@ description: Solutions to the most common issues when integrating the SDK.
     Make sure you're awaiting `Personalize.init()`:
 
     ```ts
-    // âŒ Wrong â€” sdk is a Promise, not the SDK instance
+    // Wrong - sdk is a Promise, not the SDK instance
     const sdk = Personalize.init({ auth: ... });
 
-    // âœ… Correct
+    // Correct
     const sdk = await Personalize.init({ auth: ... });
     ```
   </Accordion>
@@ -49,7 +49,7 @@ description: Solutions to the most common issues when integrating the SDK.
     The CDN script hasn't loaded yet. Make sure the `<script>` tag comes before your code:
 
     ```html
-    <!-- âœ… Script first -->
+    <!-- Script first -->
     <script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk-v2@main/dist/cdn/personalize.min.global.js"></script>
     <script>
       const sdk = await window.Personalize.init(...);
@@ -77,10 +77,10 @@ description: Solutions to the most common issues when integrating the SDK.
 
     - Make sure `getToken()` returns the token **string**, not the full response object:
       ```ts
-      // âŒ Wrong
+      // Wrong
       getToken: async () => await fetch("/auth/token").then(r => r.json())
 
-      // âœ… Correct
+      // Correct
       getToken: async () => {
         const res = await fetch("/auth/token");
         const data = await res.json();
@@ -121,7 +121,7 @@ description: Solutions to the most common issues when integrating the SDK.
   <Accordion title="Photo processing is very slow">
     The AI models (face-api.js + MediaPipe) need to download the first time (~5-10s on slow connections). After the first load they're cached by the browser.
 
-    If it's always slow, you may have too many photos. Default cap is 80 â€” reduce with `maxImages`:
+    If it's always slow, you may have too many photos. Default cap is 80 - reduce with `maxImages`:
 
     ```ts
     Personalize.init({
@@ -164,7 +164,7 @@ description: Solutions to the most common issues when integrating the SDK.
     - Check browser Network tab for the actual error
   </Accordion>
 
-  <Accordion title='"JOB_FAILED" â€” try-on failed'>
+  <Accordion title='"PERSONALIZATION_JOB_FAILED" - try-on failed'>
     HP couldn't generate the image.
 
     Common causes:
@@ -175,7 +175,7 @@ description: Solutions to the most common issues when integrating the SDK.
     Retry with a different photo or a different product image URL.
   </Accordion>
 
-  <Accordion title='"JOB_TIMEOUT" â€” generation taking too long'>
+  <Accordion title='"PERSONALIZATION_JOB_TIMEOUT" - generation taking too long'>
     HP is under load. Retry after a few seconds.
 
     If timeouts are frequent, increase the timeout:
@@ -199,14 +199,14 @@ description: Solutions to the most common issues when integrating the SDK.
     SSE (Server-Sent Events) requires specific proxy configuration:
 
     ```nginx
-    # Nginx â€” required for SSE
+    # Nginx - required for SSE
     proxy_buffering off;
     proxy_read_timeout 300s;
     chunked_transfer_encoding on;
     ```
 
     ```js
-    // Express â€” required for SSE
+    // Express - required for SSE
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -235,7 +235,7 @@ description: Solutions to the most common issues when integrating the SDK.
   <Accordion title="Cache is not working (always regenerating)">
     The cache key includes the user photo hash. If the user selects a different photo (even slightly different), it's a cache miss.
 
-    Also check `resultTtlMs` â€” if it's too low, results expire quickly:
+    Also check `resultTtlMs` - if it's too low, results expire quickly:
     ```ts
     cache: {
       resultTtlMs: 604800000  // 7 days (default)
@@ -286,7 +286,7 @@ description: Solutions to the most common issues when integrating the SDK.
    Personalize.init({ debug: true, ... });
    ```
 
-2. Check the browser console (F12 â†’ Console) for errors
+2. Check the browser console (F12 -> Console) for errors
 
 3. Check the Network tab to see what requests are being made and what responses are coming back
 

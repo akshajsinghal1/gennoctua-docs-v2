@@ -1,6 +1,6 @@
 ﻿---
 title: Frontend-Only Integration
-description: For developers who have only a frontend â€” Shopify, Webflow, plain HTML, or any site with no custom backend.
+description: For developers who have only a frontend - Shopify, Webflow, plain HTML, or any site with no custom backend.
 ---
 
 ## Overview
@@ -13,23 +13,23 @@ In frontend-only mode, Gennoctua's servers handle everything on the backend for 
 You just need a **brand key** (`gn_pk_...`) from Gennoctua.
 
 ```
-Browser (SDK) â†’ Gennoctua Backend â†’ HP AI
+Browser (SDK) -> Gennoctua Backend -> HP AI
 ```
 
 ---
 
-## Step 1 â€” Get your brand key
+## Step 1 - Get your brand key
 
 Contact Gennoctua to get your brand key. You'll receive something like:
 ```
 gn_pk_yourbrand_a3f8c2d1e4b5f6a7
 ```
 
-Keep this safe â€” don't share it publicly (though it's safe to use in frontend code, it's tied to your brand's usage limits).
+Keep this safe - don't share it publicly (though it's safe to use in frontend code, it's tied to your brand's usage limits).
 
 ---
 
-## Step 2 â€” Install the SDK
+## Step 2 - Install the SDK
 
 <CodeGroup>
 ```bash npm
@@ -43,7 +43,7 @@ npm install @gennoctua/personalize-core
 
 ---
 
-## Step 3 â€” Initialize the SDK
+## Step 3 - Initialize the SDK
 
 <CodeGroup>
 ```ts npm
@@ -71,7 +71,7 @@ That's it. No backend needed. The SDK automatically contacts Gennoctua to get a 
 
 ---
 
-## Step 4 â€” Add Upload UI
+## Step 4 - Add Upload UI
 
 ```html
 <input id="photoInput" type="file" multiple accept="image/*" webkitdirectory />
@@ -89,7 +89,7 @@ document.getElementById("photoInput").addEventListener("change", async (e) => {
     });
 
     if (summary.availableCategories.length > 0) {
-      status.textContent = "âœ“ Ready to try on!";
+      status.textContent = "Ready to try on!";
       document.getElementById("tryOnBtn").disabled = false;
     } else {
       status.textContent = "No usable photos found. Please upload clear face photos.";
@@ -102,7 +102,7 @@ document.getElementById("photoInput").addEventListener("change", async (e) => {
 
 ---
 
-## Step 5 â€” Add Try On Button
+## Step 5 - Add Try On Button
 
 ```html
 <button id="tryOnBtn" disabled>Try On</button>
@@ -160,7 +160,7 @@ document.getElementById("tryOnBtn").addEventListener("click", async () => {
   <img id="resultImg" style="display:none; max-width:400px" />
 
   <div id="toggleDiv" style="display:none">
-    <button id="toggleBtn">â† Show Original</button>
+    <button id="toggleBtn"><- Show Original</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk-v2@main/dist/cdn/personalize.min.global.js"></script>
@@ -180,7 +180,7 @@ document.getElementById("tryOnBtn").addEventListener("click", async () => {
         status.textContent = p.message;
       });
       if (summary.availableCategories.length > 0) {
-        status.textContent = "âœ“ Ready!";
+        status.textContent = "Ready!";
         document.getElementById("tryOnBtn").disabled = false;
       } else {
         status.textContent = "No clear face photos found. Try different photos.";
@@ -215,11 +215,11 @@ document.getElementById("tryOnBtn").addEventListener("click", async () => {
       if (showingPersonalized) {
         document.getElementById("resultImg").style.display = "block";
         document.getElementById("productImg").style.display = "none";
-        document.getElementById("toggleBtn").textContent = "â† Show Original";
+        document.getElementById("toggleBtn").textContent = "<- Show Original";
       } else {
         document.getElementById("resultImg").style.display = "none";
         document.getElementById("productImg").style.display = "block";
-        document.getElementById("toggleBtn").textContent = "â†’ Show Try-On";
+        document.getElementById("toggleBtn").textContent = "-> Show Try-On";
       }
     });
   </script>
@@ -290,7 +290,7 @@ Add to your product page template (`sections/product.liquid` or similar):
     User photos must have clear, front-facing faces. Ensure good lighting. At least one photo required.
   </Accordion>
   <Accordion title='"Personalization timed out"'>
-    HP may be under load â€” retry. Check your internet connection.
+    HP may be under load - retry. Check your internet connection.
   </Accordion>
   <Accordion title="Try-on result looks wrong">
     Make sure `productType` matches the actual product. Use a clean, white-background product image for best results.

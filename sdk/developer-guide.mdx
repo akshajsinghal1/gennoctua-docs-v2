@@ -5,7 +5,7 @@ description: Full technical reference for developers integrating @gennoctua/pers
 
 ## Prerequisites
 
-- Modern browser environment (Chrome, Firefox, Safari, Edge â€” last 2 versions)
+- Modern browser environment (Chrome, Firefox, Safari, Edge - last 2 versions)
 - HTTPS in production (required for browser AI models)
 - Node.js 18+ (for backend proxy)
 
@@ -134,17 +134,17 @@ fileInput.addEventListener("change", async (e) => {
 ```ts
 Personalize.init({
   // REQUIRED
-  auth: ProxyAuthConfig | PublicKeyAuthConfig,
+  auth: AuthConfig,
 
-  // Optional â€” controls which AI pipelines run during ingestImages().
+  // Optional - controls which AI pipelines run during ingestImages().
   // Tells the SDK what category of products the brand sells.
   //
   //   "eyewear" | "fashion" | "footwear" | "jewellery" | "bags" | "makeup"
-  //       â†’ face detection only (room classifier never loads)
+  //       -> face detection only (room classifier never loads)
   //   "furniture"
-  //       â†’ room classifier only (face detection skipped)
+  //       -> room classifier only (face detection skipped)
   //   "all" (default)
-  //       â†’ both pipelines run on all uploaded photos
+  //       -> both pipelines run on all uploaded photos
   //
   // Pass an array for multi-category brands:
   //   personalizationMode: ["fashion", "jewellery", "makeup"]
@@ -208,17 +208,18 @@ Processes a FileList from a folder/file input. For **person products** runs face
 const summary = await sdk.ingestImages(
   fileInputElement.files,
   (progress) => {
-    // progress.message â€” human-readable status string
-    // progress.step â€” current step number
-    // progress.total â€” total steps
+    // progress.phase   - current pipeline phase
+    // progress.message - human-readable status string
+    // progress.current - current item count (optional)
+    // progress.total   - total item count (optional)
     updateProgressBar(progress.message);
   }
 );
 
-// summary.availableCategories â€” e.g. ["female_full_body", "female_face_closeup"]
-// summary.missingCategories â€” categories not found
-// summary.totalUploaded â€” total valid photos processed
-// summary.totalSelected â€” number of profiles selected
+// summary.availableCategories - e.g. ["female_full_body", "female_face_closeup"]
+// summary.missingCategories - categories not found
+// summary.totalUploaded - total valid photos processed
+// summary.totalSelected - number of profiles selected
 ```
 
 ### `sdk.personalize(opts)`
@@ -227,10 +228,10 @@ Submits a single try-on job and returns the result. For multiple products use `s
 
 ```ts
 const result = await sdk.personalize({
-  imageUrl: “https://brand.com/product.jpg”,  // REQUIRED
-  productType: “sunglasses”,                   // REQUIRED
-  gender: “female”,                            // REQUIRED — “male” | “female” | “kid_boy” | “kid_girl”
-  productId: “sku-123”,                        // optional
+  imageUrl: "https://brand.com/product.jpg",  // REQUIRED
+  productType: "sunglasses",                  // REQUIRED
+  gender: "female",                           // REQUIRED: "male" | "female" | "kid_boy" | "kid_girl"
+  productId: "sku-123",                       // optional
   abortSignal: controller.signal,              // optional
 });
 
@@ -282,8 +283,6 @@ See [API Reference](/sdk/api-reference) for all events.
 import type {
   SDKConfig,
   AuthConfig,
-  ProxyAuthConfig,
-  PublicKeyAuthConfig,
   PersonalizationMode,
   ProductType,
   UserGender,
@@ -312,15 +311,15 @@ try {
   if (err instanceof SDKError) {
     switch (err.code) {
       case "AUTH_INVALID":
-        // token expired â€” refresh and retry
+        // token expired - refresh and retry
         break;
       case "RATE_LIMITED_CLIENT":
         // user is trying too fast
         break;
-      case “PERSONALIZATION_JOB_FAILED”:
+      case "PERSONALIZATION_JOB_FAILED":
         // AI generation failed — retry
         break;
-      case “PERSONALIZATION_JOB_TIMEOUT”:
+      case "PERSONALIZATION_JOB_TIMEOUT":
         // took too long — retry
         break;
       case "NETWORK_ERROR":
@@ -364,7 +363,7 @@ function ProductPage() {
   return (
     <div>
       <input type="file" multiple onChange={(e) => ingest(e.target.files)} />
-      <button onClick={() => personalize({ imageUrl, productType: "sunglasses" })}>
+      <button onClick={() => personalize({ imageUrl, productType: "sunglasses", gender: "female" })}>
         Try On
       </button>
       {result && <img src={result.imageUrl} />}
@@ -406,11 +405,11 @@ orgId + userImageHash + productImageHash + productType
 
 | Bundler | Support |
 |---|---|
-| Vite | âœ… |
-| Webpack 5 | âœ… |
-| Next.js (webpack mode) | âœ… |
-| Next.js (Turbopack) | âš ï¸ Use `--webpack` flag |
-| Rollup | âœ… |
-| esbuild | âœ… |
-| Parcel | âœ… |
-| Plain `<script>` tag | âœ… Use CDN bundle |
+| Vite | Yes |
+| Webpack 5 | Yes |
+| Next.js (webpack mode) | Yes |
+| Next.js (Turbopack) | Partial - use `--webpack` flag |
+| Rollup | Yes |
+| esbuild | Yes |
+| Parcel | Yes |
+| Plain `<script>` tag | Yes - use CDN bundle |

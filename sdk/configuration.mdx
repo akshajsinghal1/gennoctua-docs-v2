@@ -100,7 +100,7 @@ auth: {
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `proxyUrl` | `string` | — | Your backend URL. The SDK appends `/submit` and `/status/:jobId`. Required. |
+| `proxyUrl` | `string` | — | Your backend URL. The SDK appends `/submit`, `/status/:jobId`, `/api/profile/select`, `/api/room/select`, and `/api/uploads/user-image`. Required. |
 | `getToken` | `function` | — | Called before each request. Must return a valid JWT string. Required. |
 
 **Example:**
@@ -335,7 +335,7 @@ How often (in milliseconds) to check for job completion via SSE. Lower values me
 pollMaxAttempts?: number  // Default: 120
 ```
 
-Maximum number of polling attempts before throwing a `JOB_TIMEOUT` error. With the default `pollIntervalMs` of 1500ms and 120 attempts, the timeout is **3 minutes**.
+Maximum number of polling attempts before throwing a `PERSONALIZATION_JOB_TIMEOUT` error. With the default `pollIntervalMs` of 1500ms and 120 attempts, the timeout is **3 minutes**.
 
 ```ts
 // Extend timeout to 5 minutes:

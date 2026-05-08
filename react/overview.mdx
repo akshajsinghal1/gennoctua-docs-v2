@@ -65,7 +65,7 @@ function TryOnWidget({ productImageUrl }: { productImageUrl: string }) {
 
       {summary && summary.availableCategories.length > 0 && (
         <button
-          onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses" })}
+          onClick={() => personalize({ imageUrl: productImageUrl, productType: "sunglasses", gender: "female" })}
           disabled={loading}
         >
           {loading ? "Generating (~20s)..." : "Try On"}
