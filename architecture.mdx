@@ -5,38 +5,21 @@ description: How the SDK, Gennoctua backend, and HP AI fit together.
 
 ## System Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Brand's Website                       │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │           @gennoctua/personalize-core            │   │
-│  │                                                  │   │
-│  │  • Face detection (face-api.js)                  │   │
-│  │  • Pose scoring (MediaPipe)                      │   │
-│  │  • Photo selection                               │   │
-│  │  • Job submission & polling                      │   │
-│  │  • Result caching (IndexedDB)                    │   │
-│  │  • Rate limiting                                 │   │
-│  └──────────────────────────────────────────────────┘   │
-└────────────────────────┬────────────────────────────────┘
-                         │ HTTPS
-                         ▼
-           ┌─────────────────────────┐
-           │   Auth Proxy (one of):  │
-           │                         │
-           │  A) Gennoctua Backend   │  ← frontend-only brands
-           │     token.gennoctua.com   │
-           │                         │
-           │  B) Brand's Own Backend │  ← full-stack brands
-           │     brand.com/api/tryon │
-           └────────────┬────────────┘
-                        │ HTTPS + API Key
-                        ▼
-           ┌─────────────────────────┐
-           │      HP AI    │
-           │   (AI try-on engine)    │
-           └─────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Browser["Brand's Website (Browser)"]
+        SDK["@gennoctua/personalize-core\n─────────────────────────\n• Face detection (face-api.js)\n• Pose scoring (MediaPipe)\n• Room detection (YOLOv8 ONNX)\n• Photo selection (person + room)\n• Job submission & polling\n• Result caching (IndexedDB)\n• Rate limiting"]
+    end
+
+    subgraph Proxy["Auth Proxy (one of)"]
+        A["A) Gennoctua Backend\ntoken.gennoctua.com\n← frontend-only brands"]
+        B["B) Brand's Own Backend\nbrand.com/api/tryon\n← full-stack brands"]
+    end
+
+    HP["HP AI\n(AI try-on engine)"]
+
+    Browser -->|HTTPS| Proxy
+    Proxy -->|HTTPS + API Key| HP
 ```
 
 ---
@@ -47,66 +30,48 @@ description: How the SDK, Gennoctua backend, and HP AI fit together.
 
 Used by brands with no backend (Shopify, Webflow, plain HTML).
 
-```
-1. Brand receives gn_pk_... key from Gennoctua
-2. SDK calls POST /auth/token with publicKey
-3. Gennoctua validates key → returns 1hr JWT
-4. SDK uses JWT to call /api/tryon/submit and /api/tryon/status
-5. Gennoctua looks up brand's HP API key → proxies to HP
-```
+```mermaid
+sequenceDiagram
+    participant SDK as Browser SDK
+    participant GN as Gennoctua Backend
+    participant HP as HP AI
 
-```
-Browser SDK
-    │
-    ├─── POST /auth/token { publicKey: "gn_pk_..." }
-    │         ↓
-    │    Gennoctua Backend
-    │         │ validates brand key in SQLite DB
-    │         └─── returns { token: "eyJ...", expiresIn: 3600 }
-    │
-    ├─── POST /api/tryon/submit (Bearer token)
-    │         ↓
-    │    Gennoctua Backend
-    │         │ validates JWT, looks up hp_api_key
-    │         └─── forwards to HP (X-API-Key: hpk_...)
-    │
-    └─── GET /api/tryon/status/:jobId (Bearer token)
-              ↓
-         Gennoctua Backend
-              │ validates JWT, looks up hp_api_key
-              └─── streams SSE from HP back to browser
+    SDK->>GN: POST /auth/token { publicKey: "gn_pk_..." }
+    GN-->>SDK: { token: "eyJ...", expiresIn: 3600 }
+
+    SDK->>GN: POST /api/tryon/submit (Bearer token)
+    GN->>HP: forwards request (X-API-Key: hpk_...)
+    HP-->>GN: { job_id: "..." }
+    GN-->>SDK: { job_id: "..." }
+
+    SDK->>GN: GET /api/tryon/status/:jobId (Bearer token)
+    GN->>HP: SSE stream
+    HP-->>GN: status updates
+    GN-->>SDK: streams SSE back to browser
 ```
 
 ### Path B — Full-Stack (brand's own backend)
 
 Used by brands that have their own Node.js, Next.js, Express, etc. backend.
 
-```
-1. Brand stores HP API key in their .env
-2. Brand builds token endpoint (POST /auth/tryon-token)
-3. Brand builds proxy endpoints (POST + GET /api/tryon/...)
-4. SDK calls brand's own backend with JWT
-5. Brand's backend forwards to HP
-```
+```mermaid
+sequenceDiagram
+    participant SDK as Browser SDK
+    participant Brand as Brand's Backend
+    participant HP as HP AI
 
-```
-Browser SDK
-    │
-    ├─── POST /auth/tryon-token
-    │         ↓
-    │    Brand's Backend
-    │         │ generates JWT with brand's own JWT_SECRET
-    │         └─── returns { token: "eyJ...", expiresIn: 3600 }
-    │
-    ├─── POST /api/tryon/submit (Bearer token)
-    │         ↓
-    │    Brand's Backend
-    │         │ validates JWT, uses HP_API_KEY from .env
-    │         └─── forwards to HP
-    │
-    └─── GET /api/tryon/status/:jobId (Bearer token)
-              ↓
-         Brand's Backend → streams SSE from HP
+    SDK->>Brand: POST /auth/tryon-token
+    Brand-->>SDK: { token: "eyJ...", expiresIn: 3600 }
+
+    SDK->>Brand: POST /api/tryon/submit (Bearer token)
+    Brand->>HP: forwards request (HP_API_KEY from .env)
+    HP-->>Brand: { job_id: "..." }
+    Brand-->>SDK: { job_id: "..." }
+
+    SDK->>Brand: GET /api/tryon/status/:jobId (Bearer token)
+    Brand->>HP: SSE stream
+    HP-->>Brand: status updates
+    Brand-->>SDK: streams SSE back to browser
 ```
 
 ---
@@ -117,7 +82,8 @@ Browser SDK
 |---|---|---|
 | Face detection | **Browser** (WebAssembly) | Detects faces in uploaded photos |
 | Pose scoring | **Browser** (WebAssembly) | Scores body poses for best photo selection |
-| Photo selection | **Browser** | Picks best male/female/child profile photo |
+| Room detection | **Browser** (ONNX / WebAssembly) | Detects furniture objects to classify room type |
+| Photo selection | **Browser** + **Gennoctua** (LLM) | Picks best person photo per gender, best room photo per room type |
 | Token generation | **Backend** (Gennoctua or brand) | Issues short-lived JWTs |
 | Job submission | **Backend** (proxy) | Forwards multipart form to HP |
 | SSE streaming | **Backend** (proxy) | Streams job status back to browser |
@@ -128,28 +94,34 @@ Browser SDK
 
 ## Data Flow: Full Try-On Lifecycle
 
-```
-1. sdk.init()
-   └── Loads face-api.js + MediaPipe models (CDN, ~5-10s first time)
-   └── Fetches JWT token from auth endpoint
+```mermaid
+flowchart TD
+    A["sdk.init()"] --> A1["Load face-api.js + MediaPipe\n(CDN, ~5-10s first time)"]
+    A --> A2["Fetch JWT token\nfrom auth endpoint"]
 
-2. sdk.ingestImages(files)
-   ├── Filters valid image files (max 80)
-   ├── Runs face detection on each photo
-   ├── Classifies gender + age per face
-   ├── Scores pose quality per full-body photo
-   ├── Selects best male + female candidate
-   └── Returns SelectionSummary
+    B["sdk.ingestImages(files)"] --> B0["Filter valid image files\nmax 80"]
+    B0 --> BP["Person path\n(fashion, eyewear, footwear...)"]
+    B0 --> BR["Room path\n(furniture)"]
 
-3. sdk.personalize({ imageUrl, productType })
-   ├── Checks result cache (IndexedDB) → cache hit? return instantly
-   ├── Checks active job cache → restoring? skip submission
-   ├── Checks rate limiter → too fast? throw RATE_LIMITED_CLIENT
-   ├── Submits job (POST /submit) → receives job_id
-   ├── Opens SSE stream (GET /status/:jobId)
-   ├── Polls until COMPLETED or FAILED (every 1.5s, max 3 min)
-   ├── Caches result in IndexedDB (7 day TTL)
-   └── Returns PersonalizationResult { imageUrl, cacheHit, jobId }
+    BP --> BP1["Face detection\ngender + age per face"]
+    BP1 --> BP2["Pose scoring\nper full-body photo"]
+    BP2 --> BP3["LLM picks best\nper gender\nPOST /api/profile/select"]
+
+    BR --> BR1["YOLOv8 object detection\nper photo"]
+    BR1 --> BR2["Bucket by room type\nbedroom / living room / dining room"]
+    BR2 --> BR3["LLM picks best\nper room type\nPOST /api/room/select"]
+
+    BP3 --> DONE["SelectionSummary returned"]
+    BR3 --> DONE
+
+    C["sdk.personalize(opts)"] --> C1{"Cache hit?\nIndexedDB"}
+    C1 -->|Yes| C2["Return instantly\ncacheHit: true"]
+    C1 -->|No| C3{"Rate limited?"}
+    C3 -->|Yes| C4["throw RATE_LIMITED_CLIENT"]
+    C3 -->|No| C5["POST /submit → job_id"]
+    C5 --> C6["SSE stream /status/:jobId\npoll every 1.5s, max 3 min"]
+    C6 --> C7["Cache result IndexedDB\n7 day TTL"]
+    C7 --> C8["Return PersonalizationResult\n{ imageUrl, cacheHit, jobId }"]
 ```
 
 ---

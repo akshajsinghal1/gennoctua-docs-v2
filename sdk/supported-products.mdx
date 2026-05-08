@@ -19,11 +19,12 @@ description: Complete list of product types supported for virtual try-on.
 | Lipstick | `makeup_lipstick` | Face photo | ✅ Live |
 | Foundation | `makeup_foundation` | Face photo | ✅ Live |
 | Mascara | `makeup_mascara` | Face photo | ✅ Live |
-| Bedroom furniture | `bedroom_furniture` | — | 🔜 Phase 2 |
-| Bathroom furniture | `bathroom_furniture` | — | 🔜 Phase 2 |
-| Living room furniture | `living_room_furniture` | — | 🔜 Phase 2 |
-| Kitchen furniture | `kitchen_furniture` | — | 🔜 Phase 2 |
-| Home decor | `home_decor` | — | 🔜 Phase 2 |
+| Bedroom furniture | `bedroom_furniture` | Room photo (bedroom) | ✅ Live |
+| Living room furniture | `living_room_furniture` | Room photo (living room) | ✅ Live |
+| Dining room furniture | `dining_room_furniture` | Room photo (dining room) | ✅ Live |
+| Bathroom furniture | `bathroom_furniture` | Room photo | 🔜 Coming soon |
+| Kitchen furniture | `kitchen_furniture` | Room photo | 🔜 Coming soon |
+| Home decor | `home_decor` | Room photo | 🔜 Coming soon |
 
 ---
 
@@ -61,17 +62,31 @@ These products are placed on the full body.
 
 ---
 
-### Phase 2 — Coming Soon
+### Room Photo Required
+
+These products are placed into a room scene. The user uploads a photo of their room instead of a person photo.
+
+| Product | `productType` | Room type detected |
+|---|---|---|
+| Bedroom furniture | `bedroom_furniture` | Bedroom |
+| Living room furniture | `living_room_furniture` | Living room |
+| Dining room furniture | `dining_room_furniture` | Dining room |
+
+<Info>Accepted categories: `room_bedroom`, `room_living_room`, `room_dining_room`</Info>
+
+The SDK automatically detects the room type from the uploaded photo using on-device AI (YOLOv8 object detection). The user does not need to label their photo.
+
+---
+
+### Coming Soon
 
 <Warning>
-Furniture and home decor product types are defined in the SDK but will return `PRODUCT_TYPE_UNSUPPORTED` from `sdk.checkEligibility()` until Phase 2 launches.
+These product types are defined in the SDK but will return `PRODUCT_TYPE_UNSUPPORTED` from `sdk.checkEligibility()` until they launch.
 </Warning>
 
 | Product | `productType` |
 |---|---|
-| Bedroom furniture | `bedroom_furniture` |
 | Bathroom furniture | `bathroom_furniture` |
-| Living room furniture | `living_room_furniture` |
 | Kitchen furniture | `kitchen_furniture` |
 | Home decor | `home_decor` |
 
@@ -163,5 +178,8 @@ When you call `sdk.personalize({ imageUrl, productType })`, the SDK maps your `p
 | `makeup_lipstick` | `makeup` | `lipstick` |
 | `makeup_foundation` | `makeup` | `foundation` |
 | `makeup_mascara` | `makeup` | `mascara` |
+| `bedroom_furniture` | room generation | `bedroom` |
+| `living_room_furniture` | room generation | `living_room` |
+| `dining_room_furniture` | room generation | `dining_room` |
 
 You don't need to know any of this — just pass the `productType` value and the SDK handles the rest.

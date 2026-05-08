@@ -17,7 +17,7 @@ try {
     console.log(err.code);        // e.g. "JOB_TIMEOUT"
     console.log(err.message);     // human-readable description
     console.log(err.recoverable); // true = user can retry
-    console.log(err.context);     // additional debug info
+    console.log(err.details);     // additional debug info
   }
 }
 ```
@@ -49,7 +49,7 @@ case "AUTH_INVALID":
 
 ---
 
-### `CONFIG_ERROR`
+### `CONFIG_INVALID`
 
 | Property | Value |
 |---|---|
@@ -64,7 +64,7 @@ case "AUTH_INVALID":
 
 **How to handle:**
 ```ts
-case "CONFIG_ERROR":
+case "CONFIG_INVALID":
   // This is a developer error — check your Personalize.init() config
   console.error("Fix your SDK config:", err.message);
   break;
@@ -116,7 +116,7 @@ case "RATE_LIMITED_SERVER":
 
 ---
 
-### `JOB_FAILED`
+### `PERSONALIZATION_JOB_FAILED`
 
 | Property | Value |
 |---|---|
@@ -130,7 +130,7 @@ case "RATE_LIMITED_SERVER":
 
 **How to handle:**
 ```ts
-case "JOB_FAILED":
+case "PERSONALIZATION_JOB_FAILED":
   showMessage("Try-on failed. Try a different photo or product image.");
   tryOnButton.disabled = false;
   break;
@@ -140,7 +140,7 @@ case "JOB_FAILED":
 
 ---
 
-### `JOB_TIMEOUT`
+### `PERSONALIZATION_JOB_TIMEOUT`
 
 | Property | Value |
 |---|---|
@@ -153,7 +153,7 @@ case "JOB_FAILED":
 
 **How to handle:**
 ```ts
-case "JOB_TIMEOUT":
+case "PERSONALIZATION_JOB_TIMEOUT":
   showMessage("Generation is taking longer than expected. Please try again.");
   tryOnButton.disabled = false;
   break;
@@ -246,12 +246,12 @@ async function runTryOn() {
         showMessage("Servers are busy. Try again in a minute.");
         break;
 
-      case "JOB_FAILED":
+      case "PERSONALIZATION_JOB_FAILED":
         showMessage("Generation failed. Try a different photo.");
         enableTryOnButton();
         break;
 
-      case "JOB_TIMEOUT":
+      case "PERSONALIZATION_JOB_TIMEOUT":
         showMessage("Taking too long. Please try again.");
         enableTryOnButton();
         break;
@@ -295,6 +295,6 @@ class SDKError extends Error {
   code: string;         // one of the codes above
   message: string;      // human-readable description
   recoverable: boolean; // true if the user can retry
-  context?: unknown;    // additional debug info
+  details?: unknown;    // additional debug info
 }
 ```

@@ -7,7 +7,8 @@ description: Every configuration option for Personalize.init() with types, defau
 
 ```ts
 Personalize.init({
-  auth: AuthConfig,              // REQUIRED
+  auth: AuthConfig,                    // REQUIRED
+  personalizationMode?: PersonalizationMode | PersonalizationMode[],
   product?: ProductConfig,
   cache?: CacheConfig,
   rateLimit?: RateLimitConfig,
@@ -18,6 +19,47 @@ Personalize.init({
   pollMaxAttempts?: number,
 });
 ```
+
+---
+
+## `personalizationMode` — Optional
+
+Controls which AI pipelines run during `sdk.ingestImages()`. Tells the SDK what category of products your brand sells so it only loads the models it needs.
+
+```ts
+personalizationMode?: PersonalizationMode | PersonalizationMode[]
+// Default: "all"
+```
+
+| Value | AI pipeline | Use for |
+|---|---|---|
+| `"eyewear"` | Face detection only | Sunglasses, eyeglasses |
+| `"fashion"` | Face detection only | Men's, women's, kids' clothing |
+| `"footwear"` | Face detection only | Shoes, sneakers, boots |
+| `"jewellery"` | Face detection only | Necklaces, earrings |
+| `"bags"` | Face detection only | Handbags, purses |
+| `"makeup"` | Face detection only | Lipstick, foundation, mascara |
+| `"furniture"` | Room detection only | Bedroom, living room, dining room furniture |
+| `"all"` *(default)* | Both pipelines | Multi-category brands or unknown |
+
+**Single category:**
+```ts
+personalizationMode: "fashion"
+```
+
+**Multi-category brand (e.g. sells clothing + jewellery + makeup):**
+```ts
+personalizationMode: ["fashion", "jewellery", "makeup"]
+```
+
+**Furniture brand:**
+```ts
+personalizationMode: "furniture"
+```
+
+<Info>
+Setting `personalizationMode` is optional but recommended. If omitted, both face detection and room detection run on every uploaded photo, which adds unnecessary processing time for single-category brands.
+</Info>
 
 ---
 

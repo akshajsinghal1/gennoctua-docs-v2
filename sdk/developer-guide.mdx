@@ -1,11 +1,11 @@
----
+﻿---
 title: Developer Guide
 description: Full technical reference for developers integrating @gennoctua/personalize-core.
 ---
 
 ## Prerequisites
 
-- Modern browser environment (Chrome, Firefox, Safari, Edge — last 2 versions)
+- Modern browser environment (Chrome, Firefox, Safari, Edge â€” last 2 versions)
 - HTTPS in production (required for browser AI models)
 - Node.js 18+ (for backend proxy)
 
@@ -27,7 +27,7 @@ pnpm add @gennoctua/personalize-core
 ```
 
 ```html CDN
-<script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk@main/dist/cdn/personalize.min.global.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk-v2@main/dist/cdn/personalize.min.global.js"></script>
 <!-- window.Personalize is now available -->
 ```
 </CodeGroup>
@@ -94,16 +94,28 @@ fileInput.addEventListener("change", async (e) => {
   console.log("Available categories:", summary.availableCategories);
 });
 
-// 4. Run personalization
+// 4a. Single product
 const result = await sdk.personalize({
   imageUrl: "https://brand.com/product.jpg",
   productType: "sunglasses",
+  gender: "female",
   productId: "sku-123"
 });
 
 console.log(result.imageUrl);   // personalized image URL
 console.log(result.cacheHit);   // true if returned from cache
 console.log(result.jobId);      // HP job ID
+
+// 4b. Multiple products (product listing page)
+await sdk.personalizeAll([
+  { productId: "sku-1", imageUrl: "https://brand.com/glasses1.jpg", productType: "sunglasses", gender: "female" },
+  { productId: "sku-2", imageUrl: "https://brand.com/glasses2.jpg", productType: "sunglasses", gender: "female" },
+  { productId: "sku-3", imageUrl: "https://brand.com/shirt.jpg",    productType: "mens_clothing", gender: "male" },
+], (result) => {
+  if (result.status === "completed") {
+    document.getElementById(result.productId).src = result.imageUrl;
+  }
+});
 ```
 
 ---
@@ -114,6 +126,20 @@ console.log(result.jobId);      // HP job ID
 Personalize.init({
   // REQUIRED
   auth: ProxyAuthConfig | PublicKeyAuthConfig,
+
+  // Optional â€” controls which AI pipelines run during ingestImages().
+  // Tells the SDK what category of products the brand sells.
+  //
+  //   "eyewear" | "fashion" | "footwear" | "jewellery" | "bags" | "makeup"
+  //       â†’ face detection only (room classifier never loads)
+  //   "furniture"
+  //       â†’ room classifier only (face detection skipped)
+  //   "all" (default)
+  //       â†’ both pipelines run on all uploaded photos
+  //
+  // Pass an array for multi-category brands:
+  //   personalizationMode: ["fashion", "jewellery", "makeup"]
+  personalizationMode: "fashion", // or "furniture" | "all" | ["fashion", "furniture"]
 
   // Product detection
   product: {
@@ -167,48 +193,49 @@ Personalize.init({
 
 ### `sdk.ingestImages(files, onProgress?)`
 
-Processes a FileList from a folder/file input. Runs face detection, gender classification, pose scoring, and selects the best profile photos.
+Processes a FileList from a folder/file input. For **person products** runs face detection, gender classification, and pose scoring. For **furniture products** runs on-device room detection (YOLOv8) to classify photos as bedroom, living room, or dining room. An LLM refinement pass picks the single best photo per category.
 
 ```ts
 const summary = await sdk.ingestImages(
   fileInputElement.files,
   (progress) => {
-    // progress.message — human-readable status string
-    // progress.step — current step number
-    // progress.total — total steps
+    // progress.message â€” human-readable status string
+    // progress.step â€” current step number
+    // progress.total â€” total steps
     updateProgressBar(progress.message);
   }
 );
 
-// summary.availableCategories — e.g. ["female_full_body", "female_face_closeup"]
-// summary.missingCategories — categories not found
-// summary.totalUploaded — total valid photos processed
-// summary.totalSelected — number of profiles selected
+// summary.availableCategories â€” e.g. ["female_full_body", "female_face_closeup"]
+// summary.missingCategories â€” categories not found
+// summary.totalUploaded â€” total valid photos processed
+// summary.totalSelected â€” number of profiles selected
 ```
 
 ### `sdk.personalize(opts)`
 
-Submits a try-on job and returns the result.
+Submits a single try-on job and returns the result. For multiple products use `sdk.personalizeAll()`.
 
 ```ts
 const result = await sdk.personalize({
-  imageUrl: "https://brand.com/product.jpg",  // REQUIRED
-  productType: "sunglasses",                   // REQUIRED
-  productId: "sku-123",                        // optional
+  imageUrl: “https://brand.com/product.jpg”,  // REQUIRED
+  productType: “sunglasses”,                   // REQUIRED
+  gender: “female”,                            // REQUIRED — “male” | “female” | “kid_boy” | “kid_girl”
+  productId: “sku-123”,                        // optional
   abortSignal: controller.signal,              // optional
 });
 
 // result.imageUrl — personalized image URL
 // result.cacheHit — true if returned from cache (instant)
-// result.jobId — job ID for debugging
+// result.jobId    — job ID for debugging
 ```
 
-### `sdk.checkEligibility(productType?)`
+### `sdk.getEligibility(productType?)`
 
 Check if a try-on can be performed before starting.
 
 ```ts
-const eligibility = sdk.checkEligibility("sunglasses");
+const eligibility = await sdk.getEligibility("sunglasses");
 
 if (eligibility.eligible) {
   // show Try On button
@@ -221,15 +248,19 @@ if (eligibility.eligible) {
 }
 ```
 
-### `sdk.on / sdk.off / sdk.once`
+### `sdk.on / sdk.off`
 
 ```ts
-sdk.on("personalization:completed", ({ imageUrl, cacheHit, jobId }) => {
+// Returns an unsubscribe function
+const unsub = sdk.on("personalization:completed", ({ imageUrl, cacheHit, jobId }) => {
   showResult(imageUrl);
 });
 
+// Unsubscribe manually
 sdk.off("personalization:completed", handler);
-sdk.once("personalization:completed", handler);
+
+// Or use the returned unsubscribe function
+unsub();
 ```
 
 See [API Reference](/sdk/api-reference) for all events.
@@ -244,11 +275,15 @@ import type {
   AuthConfig,
   ProxyAuthConfig,
   PublicKeyAuthConfig,
+  PersonalizationMode,
   ProductType,
+  UserGender,
   UserImageCategory,
   PersonalizationResult,
   SelectionSummary,
   EligibilityResult,
+  BatchProduct,
+  BatchResult,
   SDKEventMap,
   SDKEventName,
   AnalyticsEvent,
@@ -263,20 +298,20 @@ import type {
 import { SDKError } from "@gennoctua/personalize-core";
 
 try {
-  const result = await sdk.personalize({ imageUrl, productType });
+  const result = await sdk.personalize({ imageUrl, productType, gender: "female" });
 } catch (err) {
   if (err instanceof SDKError) {
     switch (err.code) {
       case "AUTH_INVALID":
-        // token expired — refresh and retry
+        // token expired â€” refresh and retry
         break;
       case "RATE_LIMITED_CLIENT":
         // user is trying too fast
         break;
-      case "JOB_FAILED":
+      case “PERSONALIZATION_JOB_FAILED”:
         // AI generation failed — retry
         break;
-      case "JOB_TIMEOUT":
+      case “PERSONALIZATION_JOB_TIMEOUT”:
         // took too long — retry
         break;
       case "NETWORK_ERROR":
@@ -362,11 +397,11 @@ orgId + userImageHash + productImageHash + productType
 
 | Bundler | Support |
 |---|---|
-| Vite | ✅ |
-| Webpack 5 | ✅ |
-| Next.js (webpack mode) | ✅ |
-| Next.js (Turbopack) | ⚠️ Use `--webpack` flag |
-| Rollup | ✅ |
-| esbuild | ✅ |
-| Parcel | ✅ |
-| Plain `<script>` tag | ✅ Use CDN bundle |
+| Vite | âœ… |
+| Webpack 5 | âœ… |
+| Next.js (webpack mode) | âœ… |
+| Next.js (Turbopack) | âš ï¸ Use `--webpack` flag |
+| Rollup | âœ… |
+| esbuild | âœ… |
+| Parcel | âœ… |
+| Plain `<script>` tag | âœ… Use CDN bundle |

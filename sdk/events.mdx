@@ -20,14 +20,14 @@ Events are also forwarded to your `analytics.onEvent` callback if configured. Se
 ## Subscribing to Events
 
 ```ts
-// Subscribe
-sdk.on("personalization:completed", handler);
+// Subscribe — returns an unsubscribe function
+const unsub = sdk.on("personalization:completed", handler);
 
-// Unsubscribe
+// Unsubscribe manually
 sdk.off("personalization:completed", handler);
 
-// One-time (auto-unsubscribes after first call)
-sdk.once("personalization:completed", handler);
+// Or use the returned unsubscribe function
+unsub();
 ```
 
 ---
