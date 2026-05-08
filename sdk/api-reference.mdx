@@ -250,7 +250,7 @@ Subscribe with `sdk.on(eventName, handler)`.
 | `personalization:requested` | `{ productImageUrl }` | `personalize()` called |
 | `personalization:cache_hit` | `PersonalizationResult` | Result found in cache (instant) |
 | `personalization:job_created` | `{ jobId }` | Job submitted to HP |
-| `personalization:polling_started` | `{ jobId }` | SSE stream opened |
+| `personalization:polling_started` | `{ jobId }` | Status tracking started (SSE for person products, polling for furniture) |
 | `personalization:completed` | `PersonalizationResult` | Try-on image ready |
 | `personalization:failed` | `{ error, code }` | Try-on failed |
 | `personalization:cancelled` | `{ jobId? }` | Request was aborted |
