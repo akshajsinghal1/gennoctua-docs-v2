@@ -60,6 +60,12 @@ sdk.ingestImages(
 
 Submits a single try-on job and returns the result when complete. For multiple products use [`sdk.personalizeAll()`](#sdkpersonalizeall).
 
+**When to use:** Single product pages. Typically wired to a "Try On" button — the user uploads photos, then clicks the button to trigger generation.
+
+```
+user uploads photos → ingestImages() resolves → user clicks "Try On" → personalize()
+```
+
 ```ts
 sdk.personalize(opts: {
   imageUrl: string;
@@ -109,7 +115,13 @@ controller.abort();
 
 Submits try-on jobs for multiple products in parallel. Results are streamed back via `onResult` as each job completes — no need to wait for all jobs to finish.
 
-Use this for product listing pages where multiple products need try-on simultaneously.
+**When to use:** Product listing pages. Call it automatically right after `ingestImages()` resolves — no button click needed. As each product finishes generating, `onResult` fires and you update that product's image immediately without waiting for the rest.
+
+```
+user uploads photos → ingestImages() resolves → personalizeAll() fires automatically
+                                                      │
+                                        onResult fires per product as each completes
+```
 
 ```ts
 sdk.personalizeAll(

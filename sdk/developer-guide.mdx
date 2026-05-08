@@ -94,27 +94,36 @@ fileInput.addEventListener("change", async (e) => {
   console.log("Available categories:", summary.availableCategories);
 });
 
-// 4a. Single product
-const result = await sdk.personalize({
-  imageUrl: "https://brand.com/product.jpg",
-  productType: "sunglasses",
-  gender: "female",
-  productId: "sku-123"
+// 4a. Single product page — wire to a "Try On" button click
+//     User uploads photos first, then explicitly clicks the button to trigger generation.
+tryOnButton.addEventListener("click", async () => {
+  const result = await sdk.personalize({
+    imageUrl: "https://brand.com/product.jpg",
+    productType: "sunglasses",
+    gender: "female",
+    productId: "sku-123"
+  });
+  console.log(result.imageUrl);   // personalized image URL
+  console.log(result.cacheHit);   // true if returned from cache
+  console.log(result.jobId);      // HP job ID
 });
 
-console.log(result.imageUrl);   // personalized image URL
-console.log(result.cacheHit);   // true if returned from cache
-console.log(result.jobId);      // HP job ID
+// 4b. Product listing page — call automatically right after ingestImages() resolves.
+//     No button click needed. Results stream in per product as each job completes.
+fileInput.addEventListener("change", async (e) => {
+  await sdk.ingestImages(e.target.files);
 
-// 4b. Multiple products (product listing page)
-await sdk.personalizeAll([
-  { productId: "sku-1", imageUrl: "https://brand.com/glasses1.jpg", productType: "sunglasses", gender: "female" },
-  { productId: "sku-2", imageUrl: "https://brand.com/glasses2.jpg", productType: "sunglasses", gender: "female" },
-  { productId: "sku-3", imageUrl: "https://brand.com/shirt.jpg",    productType: "mens_clothing", gender: "male" },
-], (result) => {
-  if (result.status === "completed") {
-    document.getElementById(result.productId).src = result.imageUrl;
-  }
+  // Fire immediately — no button click needed
+  await sdk.personalizeAll([
+    { productId: "sku-1", imageUrl: "https://brand.com/glasses1.jpg", productType: "sunglasses", gender: "female" },
+    { productId: "sku-2", imageUrl: "https://brand.com/glasses2.jpg", productType: "sunglasses", gender: "female" },
+    { productId: "sku-3", imageUrl: "https://brand.com/shirt.jpg",    productType: "mens_clothing", gender: "male" },
+  ], (result) => {
+    // Called per product as each finishes — don't wait for all
+    if (result.status === "completed") {
+      document.getElementById(result.productId).src = result.imageUrl;
+    }
+  });
 });
 ```
 
