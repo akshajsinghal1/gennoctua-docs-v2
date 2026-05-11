@@ -100,7 +100,7 @@ auth: {
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `proxyUrl` | `string` | — | Your backend URL. The SDK appends `/submit`, `/status/:jobId`, `/api/profile/select`, `/api/room/select`, and `/api/uploads/user-image`. Required. |
+| `proxyUrl` | `string` | — | Your backend URL. The SDK appends `/submit`, `/status/:jobId`, `/api/profile/select`, `/api/room/select`, and `/api/uploads/user-image` (all forwarded to Hyperpersona from your server). Required. |
 | `getToken` | `function` | — | Called before each request. Must return a valid JWT string. Required. |
 
 **Example:**
@@ -325,7 +325,7 @@ Maximum number of photos to process from the file input. Photos beyond this limi
 pollIntervalMs?: number  // Default: 1500
 ```
 
-How often (in milliseconds) to check for job completion. Applies to both person-product status streaming and furniture room-generation polling. Lower values mean faster detection of completion but more network activity.
+How often (in milliseconds) the SDK reads from the try-on status SSE stream (and related timing). Lower values mean faster detection of completion but more network activity.
 
 ---
 

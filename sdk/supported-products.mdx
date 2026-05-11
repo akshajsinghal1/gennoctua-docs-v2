@@ -162,9 +162,9 @@ if (eligibility.eligible) {
 
 ## Internal Mapping
 
-When you call `sdk.personalize({ imageUrl, productType, gender })` for person products, the SDK maps your `productType` to a category and label sent to HP.
+When you call `sdk.personalize(...)`, the SDK maps your `productType` to Hyperpersona `category` and `product_type` fields on `POST /api/tryon/submit` (person products use clothing/eyewear/etc.; furniture always uses `category=furniture`).
 
-| `productType` | Category sent | Label sent |
+| `productType` | Category sent | Label sent (`product_type`) |
 |---|---|---|
 | `sunglasses` | `eyewear` | `sunglasses` |
 | `eyeglasses` | `eyewear` | `eyeglasses` |
@@ -178,8 +178,11 @@ When you call `sdk.personalize({ imageUrl, productType, gender })` for person pr
 | `makeup_lipstick` | `makeup` | `lipstick` |
 | `makeup_foundation` | `makeup` | `foundation` |
 | `makeup_mascara` | `makeup` | `mascara` |
-| `bedroom_furniture` | room generation | `bedroom` |
-| `living_room_furniture` | room generation | `living_room` |
-| `dining_room_furniture` | room generation | `dining_room` |
+| `bedroom_furniture` | `furniture` | `bedroom furniture` |
+| `bathroom_furniture` | `furniture` | `bathroom furniture` |
+| `living_room_furniture` | `furniture` | `living room furniture` |
+| `dining_room_furniture` | `furniture` | `dining room furniture` |
+| `kitchen_furniture` | `furniture` | `kitchen furniture` |
+| `home_decor` | `furniture` | `home decor` |
 
 You don't need to know any of this — just pass the `productType` value and the SDK handles the rest.

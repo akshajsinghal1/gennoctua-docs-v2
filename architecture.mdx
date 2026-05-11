@@ -83,7 +83,7 @@ sequenceDiagram
 | Face detection | **Browser** (WebAssembly) | Detects faces in uploaded photos |
 | Pose scoring | **Browser** (WebAssembly) | Scores body poses for best photo selection |
 | Room detection | **Browser** (ONNX / WebAssembly) | Detects furniture objects to classify room type |
-| Photo selection | **Browser** + **Gennoctua** (LLM) | Picks best person photo per gender, best room photo per room type |
+| Photo selection | **Browser** + **proxy → Hyperpersona** (LLM) | Picks best person photo per gender, best room photo per room type |
 | Token generation | **Backend** (Gennoctua or brand) | Issues short-lived JWTs |
 | Job submission | **Backend** (proxy) | Forwards multipart form to HP |
 | SSE streaming | **Backend** (proxy) | Streams job status back to browser |
@@ -119,7 +119,7 @@ flowchart TD
     C1 -->|No| C3{"Rate limited?"}
     C3 -->|Yes| C4["throw RATE_LIMITED_CLIENT"]
     C3 -->|No| C5["POST /submit → job_id"]
-    C5 --> C6["SSE stream /status/:jobId\npoll every 1.5s, max 3 min"]
+    C5 --> C6["SSE stream /status/:jobId\n(person + furniture), max ~3 min"]
     C6 --> C7["Cache result IndexedDB\n7 day TTL"]
     C7 --> C8["Return PersonalizationResult\n{ imageUrl, cacheHit, jobId }"]
 ```

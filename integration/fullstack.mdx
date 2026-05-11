@@ -6,14 +6,12 @@ description: For developers who have both a frontend and a backend (Next.js, Rea
 ## Overview
 
 In full-stack mode:
-- Your **backend** holds the HP API key (issued by Gennoctua — never exposed to the browser)
-- Your **backend** holds the `X-Client-Api-Key` (issued by Gennoctua — for calling `ec.gennoctua.com`)
+- Your **backend** holds the Hyperpersona API key (`HP_API_KEY`, issued by Gennoctua — never exposed to the browser)
 - Your **frontend** uses the SDK — all requests go through your backend only
-- The browser never calls Gennoctua or HP directly
+- The browser never calls Hyperpersona directly
 
 ```
-Browser (SDK) → Your Backend → HP AI
-                     └──────→ ec.gennoctua.com (LLM refinement + GCS upload)
+Browser (SDK) → Your Backend → Hyperpersona (HP) API
 ```
 
 ---
@@ -32,8 +30,7 @@ npm install @gennoctua/personalize-core
 
 Add to your `.env` file:
 ```
-HP_API_KEY=your_hyperpersona_api_key_here       # issued by Gennoctua — forwards to HP
-EC_CLIENT_API_KEY=ec_api_xxx                    # issued by Gennoctua — for ec.gennoctua.com
+HP_API_KEY=your_hyperpersona_api_key_here       # issued by Gennoctua — X-API-Key to Hyperpersona
 JWT_SECRET=your_random_secret_here_min_32_chars # your own secret for signing session tokens
 ```
 
@@ -80,13 +77,12 @@ export default function handler(req, res) {
 
 ### Add proxy endpoints
 
-Your backend must proxy **all** SDK routes. The SDK calls 7 endpoints — 4 go to HP, 3 go to `ec.gennoctua.com`.
+Your backend must proxy **all** SDK routes. The SDK calls **5** upstream Hyperpersona paths (plus your own `/auth/tryon-token`): try-on submit + SSE status, profile select, room select, and user-image upload. Forward each with `X-API-Key: process.env.HP_API_KEY`.
 
 <CodeGroup>
 ```js Node/Express
 const jwt = require("jsonwebtoken");
 const HP_BASE = "https://hyperpersona-api-914497143112.us-central1.run.app";
-const EC_BASE = "https://ec.gennoctua.com";
 
 function requireTryonToken(req, res, next) {
   const auth = req.headers.authorization || "";
@@ -99,9 +95,13 @@ function requireTryonToken(req, res, next) {
   }
 }
 
-// ── HP routes (try-on job submit + status) ─────────────────────────────────
+const hpHeadersJson = {
+  "X-API-Key": process.env.HP_API_KEY,
+  "Content-Type": "application/json",
+};
 
-// Submit try-on job
+// ── Try-on (person + furniture: same submit + SSE status on HP) ───────────
+
 app.post("/api/tryon/submit", requireTryonToken, async (req, res) => {
   const response = await fetch(`${HP_BASE}/api/tryon/submit`, {
     method: "POST",
@@ -112,7 +112,6 @@ app.post("/api/tryon/submit", requireTryonToken, async (req, res) => {
   res.json(data);
 });
 
-// Stream try-on status (SSE)
 app.get("/api/tryon/status/:jobId", requireTryonToken, async (req, res) => {
   const response = await fetch(`${HP_BASE}/api/tryon/status/${req.params.jobId}`, {
     headers: { "X-API-Key": process.env.HP_API_KEY },
@@ -123,57 +122,30 @@ app.get("/api/tryon/status/:jobId", requireTryonToken, async (req, res) => {
   response.body.pipe(res);
 });
 
-// Room generation + status
-app.post("/api/tryon/api/gen/generate-room", requireTryonToken, async (req, res) => {
-  const response = await fetch(`${HP_BASE}/api/gen/generate-room`, {
-    method: "POST",
-    headers: { "X-API-Key": process.env.HP_API_KEY },
-    body: req,
-  });
-  res.json(await response.json());
-});
+// ── LLM refinement + upload (same HP host) ─────────────────────────────────
 
-app.get("/api/tryon/api/gen/status/:jobId", requireTryonToken, async (req, res) => {
-  const response = await fetch(`${HP_BASE}/api/gen/status/${req.params.jobId}`, {
-    headers: { "X-API-Key": process.env.HP_API_KEY },
-  });
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  response.body.pipe(res);
-});
-
-// ── ec.gennoctua.com routes (LLM refinement + GCS upload) ──────────────────
-
-const EC_HEADERS = {
-  "X-Client-Api-Key": process.env.EC_CLIENT_API_KEY,
-  "Content-Type": "application/json",
-};
-
-// LLM profile refinement
 app.post("/api/tryon/api/profile/select", requireTryonToken, async (req, res) => {
-  const response = await fetch(`${EC_BASE}/api/profile/select`, {
+  const response = await fetch(`${HP_BASE}/api/profile/select`, {
     method: "POST",
-    headers: EC_HEADERS,
+    headers: hpHeadersJson,
     body: JSON.stringify(req.body),
   });
   res.json(await response.json());
 });
 
-// LLM room refinement
 app.post("/api/tryon/api/room/select", requireTryonToken, async (req, res) => {
-  const response = await fetch(`${EC_BASE}/api/room/select`, {
+  const response = await fetch(`${HP_BASE}/api/room/select`, {
     method: "POST",
-    headers: EC_HEADERS,
+    headers: hpHeadersJson,
     body: JSON.stringify(req.body),
   });
   res.json(await response.json());
 });
 
-// GCS profile upload (multipart)
 app.post("/api/tryon/api/uploads/user-image", requireTryonToken, async (req, res) => {
-  const response = await fetch(`${EC_BASE}/api/uploads/user-image`, {
+  const response = await fetch(`${HP_BASE}/api/uploads/user-image`, {
     method: "POST",
-    headers: { "X-Client-Api-Key": process.env.EC_CLIENT_API_KEY },
+    headers: { "X-API-Key": process.env.HP_API_KEY },
     body: req,
   });
   res.json(await response.json());
@@ -325,7 +297,10 @@ document.getElementById("tryOnBtn").addEventListener("click", async () => {
 <Check>`JWT_SECRET` in `.env`</Check>
 <Check>`POST /auth/tryon-token` endpoint added</Check>
 <Check>`POST /api/tryon/submit` proxy endpoint added</Check>
-<Check>`GET /api/tryon/status/:jobId` proxy endpoint added</Check>
+<Check>`GET /api/tryon/status/:jobId` proxy endpoint added (SSE)</Check>
+<Check>`POST /api/tryon/api/profile/select` → HP `/api/profile/select`</Check>
+<Check>`POST /api/tryon/api/room/select` → HP `/api/room/select`</Check>
+<Check>`POST /api/tryon/api/uploads/user-image` → HP `/api/uploads/user-image`</Check>
 <Check>SDK initialized with `proxyUrl` + `getToken`</Check>
 <Check>File input connected to `sdk.ingestImages()`</Check>
 <Check>Try-on button connected to `sdk.personalize()`</Check>
