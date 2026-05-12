@@ -81,7 +81,7 @@ The SDK automatically detects the room type from the uploaded photo using on-dev
 ### Coming Soon
 
 <Warning>
-These product types are defined in the SDK but will return `PRODUCT_TYPE_UNSUPPORTED` from `sdk.checkEligibility()` until they launch.
+These product types are defined in the SDK but will return `PRODUCT_TYPE_UNSUPPORTED` from `sdk.getEligibility()` until they launch.
 </Warning>
 
 | Product | `productType` |
@@ -120,7 +120,7 @@ type ProductType =
 ## Checking Eligibility
 
 ```ts
-const eligibility = sdk.checkEligibility("sunglasses");
+const eligibility = await sdk.getEligibility("sunglasses");
 
 if (eligibility.eligible) {
   // Show Try On button
