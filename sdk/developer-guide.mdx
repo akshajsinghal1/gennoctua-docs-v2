@@ -100,6 +100,7 @@ tryOnButton.addEventListener("click", async () => {
   const result = await sdk.personalize({
     imageUrl: "https://brand.com/product.jpg",
     productType: "sunglasses",
+    category: "eyewear",
     gender: "female",
     productId: "sku-123"
   });
@@ -115,9 +116,9 @@ fileInput.addEventListener("change", async (e) => {
 
   // Fire immediately — no button click needed
   await sdk.personalizeAll([
-    { productId: "sku-1", imageUrl: "https://brand.com/glasses1.jpg", productType: "sunglasses", gender: "female" },
-    { productId: "sku-2", imageUrl: "https://brand.com/glasses2.jpg", productType: "sunglasses", gender: "female" },
-    { productId: "sku-3", imageUrl: "https://brand.com/shirt.jpg",    productType: "mens_clothing", gender: "male" },
+    { productId: "sku-1", imageUrl: "https://brand.com/glasses1.jpg", productType: "sunglasses",   category: "eyewear",  gender: "female" },
+    { productId: "sku-2", imageUrl: "https://brand.com/glasses2.jpg", productType: "sunglasses",   category: "eyewear",  gender: "female" },
+    { productId: "sku-3", imageUrl: "https://brand.com/shirt.jpg",    productType: "mens_clothing", category: "clothing", gender: "male" },
   ], (result) => {
     // Called per product as each finishes — don't wait for all
     if (result.status === "completed") {
@@ -229,8 +230,9 @@ Submits a single try-on job and returns the result. For multiple products use `s
 ```ts
 const result = await sdk.personalize({
   imageUrl: "https://brand.com/product.jpg",  // REQUIRED
-  productType: "sunglasses",                  // REQUIRED
-  gender: "female",                           // REQUIRED: "male" | "female" | "kid_boy" | "kid_girl"
+  productType: "sunglasses",                  // REQUIRED — any string label
+  category: "eyewear",                        // REQUIRED — HpCategory for HP routing
+  gender: "female",                           // optional for furniture; required for person products
   productId: "sku-123",                       // optional
   abortSignal: controller.signal,              // optional
 });
@@ -284,7 +286,7 @@ import type {
   SDKConfig,
   AuthConfig,
   PersonalizationMode,
-  ProductType,
+  HpCategory,
   UserGender,
   UserImageCategory,
   PersonalizationResult,
@@ -306,7 +308,7 @@ import type {
 import { SDKError } from "@gennoctua/personalize-core";
 
 try {
-  const result = await sdk.personalize({ imageUrl, productType, gender: "female" });
+  const result = await sdk.personalize({ imageUrl, productType, category, gender: "female" });
 } catch (err) {
   if (err instanceof SDKError) {
     switch (err.code) {
@@ -363,7 +365,7 @@ function ProductPage() {
   return (
     <div>
       <input type="file" multiple onChange={(e) => ingest(e.target.files)} />
-      <button onClick={() => personalize({ imageUrl, productType: "sunglasses", gender: "female" })}>
+      <button onClick={() => personalize({ imageUrl, productType: "sunglasses", category: "eyewear", gender: "female" })}>
         Try On
       </button>
       {result && <img src={result.imageUrl} />}

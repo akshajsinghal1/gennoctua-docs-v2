@@ -44,7 +44,7 @@ These products overlay onto the face or neck area.
 | Foundation | `makeup_foundation` |
 | Mascara | `makeup_mascara` |
 
-<Info>Accepted categories: `male_face_closeup`, `female_face_closeup`, `child_face_closeup`</Info>
+<Info>Accepted categories: `male_face_closeup`, `female_face_closeup`, `kid_boy_face_closeup`, `kid_girl_face_closeup`</Info>
 
 ---
 
@@ -74,7 +74,7 @@ These products are placed into a room scene. The user uploads a photo of their r
 
 <Info>Accepted categories: `room_bedroom`, `room_living_room`, `room_dining_room`</Info>
 
-The SDK automatically detects the room type from the uploaded photo using on-device AI (YOLOv8 object detection). The user does not need to label their photo.
+The SDK automatically detects the room type from the uploaded photo using on-device AI (YOLOv11 object detection). The user does not need to label their photo.
 
 ---
 
@@ -92,27 +92,34 @@ These product types are defined in the SDK but will return `PRODUCT_TYPE_UNSUPPO
 
 ---
 
-## TypeScript Type
+## TypeScript Types
+
+`productType` is **open** — it accepts any string and is forwarded to HP as a descriptive label. The well-known values below are examples, not an exhaustive list. You can pass values like `"tops"`, `"dresses"`, or `"co-ords"` freely.
 
 ```ts
-type ProductType =
-  | "sunglasses"
-  | "eyeglasses"
-  | "mens_clothing"
-  | "womens_clothing"
-  | "kids_clothing"
+// productType is string — any value is accepted
+// Well-known examples:
+"sunglasses" | "eyeglasses"
+"mens_clothing" | "womens_clothing" | "kids_clothing"
+"footwear"
+"jewellery" | "earrings"
+"bags"
+"makeup_lipstick" | "makeup_foundation" | "makeup_mascara"
+"bedroom_furniture" | "living_room_furniture" | "dining_room_furniture"
+"bathroom_furniture" | "kitchen_furniture" | "home_decor"
+```
+
+`HpCategory` is a **required** field on every `personalize()` call. It determines which HP pipeline runs.
+
+```ts
+type HpCategory =
+  | "clothing"
   | "footwear"
+  | "eyewear"
   | "jewellery"
-  | "earrings"
-  | "bags"
-  | "makeup_lipstick"
-  | "makeup_foundation"
-  | "makeup_mascara"
-  | "bedroom_furniture"
-  | "bathroom_furniture"
-  | "living_room_furniture"
-  | "kitchen_furniture"
-  | "home_decor";
+  | "accessories"
+  | "makeup"
+  | "furniture";
 ```
 
 ---
@@ -160,29 +167,16 @@ if (eligibility.eligible) {
 
 ---
 
-## Internal Mapping
+## HP Routing
 
-When you call `sdk.personalize(...)`, the SDK maps your `productType` to Hyperpersona `category` and `product_type` fields on `POST /api/tryon/submit` (person products use clothing/eyewear/etc.; furniture always uses `category=furniture`).
+When you call `sdk.personalize(...)`, the SDK sends your `category` (`HpCategory`) directly to HP as the routing field, and your `productType` string as the label. You supply both — the SDK does not infer one from the other.
 
-| `productType` | Category sent | Label sent (`product_type`) |
+| What you pass (`category`) | What HP routes to | Example `productType` values |
 |---|---|---|
-| `sunglasses` | `eyewear` | `sunglasses` |
-| `eyeglasses` | `eyewear` | `eyeglasses` |
-| `mens_clothing` | `clothing` | `mens clothing` |
-| `womens_clothing` | `clothing` | `womens clothing` |
-| `kids_clothing` | `clothing` | `kids clothing` |
-| `footwear` | `footwear` | `footwear` |
-| `jewellery` | `jewellery` | `jewellery necklace` |
-| `earrings` | `jewellery` | `earrings` |
-| `bags` | `accessories` | `bag` |
-| `makeup_lipstick` | `makeup` | `lipstick` |
-| `makeup_foundation` | `makeup` | `foundation` |
-| `makeup_mascara` | `makeup` | `mascara` |
-| `bedroom_furniture` | `furniture` | `bedroom furniture` |
-| `bathroom_furniture` | `furniture` | `bathroom furniture` |
-| `living_room_furniture` | `furniture` | `living room furniture` |
-| `dining_room_furniture` | `furniture` | `dining room furniture` |
-| `kitchen_furniture` | `furniture` | `kitchen furniture` |
-| `home_decor` | `furniture` | `home decor` |
-
-You don't need to know any of this — just pass the `productType` value and the SDK handles the rest.
+| `"eyewear"` | Eyewear try-on pipeline | `"sunglasses"`, `"eyeglasses"` |
+| `"clothing"` | Clothing try-on pipeline | `"mens_clothing"`, `"womens_clothing"`, `"tops"`, `"dresses"`, `"co-ords"` |
+| `"footwear"` | Footwear try-on pipeline | `"footwear"`, `"sneakers"`, `"boots"` |
+| `"jewellery"` | Jewellery try-on pipeline | `"jewellery"`, `"earrings"`, `"necklace"` |
+| `"accessories"` | Accessories try-on pipeline | `"bags"`, `"handbag"`, `"clutch"` |
+| `"makeup"` | Makeup try-on pipeline | `"makeup_lipstick"`, `"makeup_foundation"`, `"makeup_mascara"` |
+| `"furniture"` | Room generation pipeline | `"bedroom_furniture"`, `"living_room_furniture"`, `"dining_room_furniture"` |

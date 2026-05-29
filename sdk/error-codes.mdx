@@ -209,6 +209,160 @@ case "SELECTION_FAILED":
 
 ---
 
+### `AUTH_DOMAIN_NOT_ALLOWED`
+
+| Property | Value |
+|---|---|
+| Recoverable | ❌ No |
+| When | The requesting domain is not authorised for this public key |
+
+**Causes:**
+- Brand's public key (`gn_pk_...`) is not configured for this domain
+- Using a public key from a different brand/environment
+
+**How to handle:**
+```ts
+case "AUTH_DOMAIN_NOT_ALLOWED":
+  // Developer error — register your domain for this key in the Gennoctua dashboard
+  console.error("Domain not authorised for this public key");
+  break;
+```
+
+---
+
+### `PRODUCT_CONTEXT_NOT_FOUND`
+
+| Property | Value |
+|---|---|
+| Recoverable | ✅ Yes — pass product info explicitly |
+| When | SDK could not detect product info from the page and no overrides were provided |
+
+**How to handle:**
+```ts
+case "PRODUCT_CONTEXT_NOT_FOUND":
+  // Pass imageUrl and productType explicitly to sdk.personalize()
+  break;
+```
+
+---
+
+### `PRODUCT_TYPE_NOT_FOUND`
+
+| Property | Value |
+|---|---|
+| Recoverable | ✅ Yes — provide productType |
+| When | `productType` was not provided and could not be inferred |
+
+**How to handle:**
+```ts
+case "PRODUCT_TYPE_NOT_FOUND":
+  // Always pass productType explicitly to sdk.personalize()
+  break;
+```
+
+---
+
+### `REQUIRED_USER_IMAGE_MISSING`
+
+| Property | Value |
+|---|---|
+| Recoverable | ✅ Yes — ask user to upload photos |
+| When | No uploaded photo matches the required category for the product |
+
+**Causes:**
+- User hasn't uploaded any photos yet
+- User uploaded only face photos but a full-body photo is required (e.g. clothing)
+- User uploaded only room photos but a person photo is needed, or vice versa
+
+**How to handle:**
+```ts
+case "REQUIRED_USER_IMAGE_MISSING":
+  showUploadPrompt("Please upload a suitable photo to try on this product.");
+  break;
+```
+
+---
+
+### `UPLOAD_FAILED`
+
+| Property | Value |
+|---|---|
+| Recoverable | ✅ Yes — retry upload |
+| When | Image upload to storage failed during `ingestImages()` |
+
+**How to handle:**
+```ts
+case "UPLOAD_FAILED":
+  showMessage("Photo upload failed. Please try again.");
+  break;
+```
+
+---
+
+### `TAGGING_FAILED`
+
+| Property | Value |
+|---|---|
+| Recoverable | ✅ Yes — SDK falls back silently |
+| When | LLM profile-refinement step failed |
+
+This error is non-fatal — the SDK silently falls back to the local AI picks when tagging fails. You will typically only see it via `sdk.on("error", ...)`.
+
+---
+
+### `PERSONALIZATION_CANCELLED`
+
+| Property | Value |
+|---|---|
+| Recoverable | ✅ Yes — user can retry |
+| When | Request was cancelled via `AbortController` or `sdk.cancel()` |
+
+**How to handle:**
+```ts
+case "PERSONALIZATION_CANCELLED":
+  // No action needed — user initiated the cancel
+  enableTryOnButton();
+  break;
+```
+
+---
+
+### `CACHE_ERROR`
+
+| Property | Value |
+|---|---|
+| Recoverable | ✅ Yes — SDK operates without cache |
+| When | IndexedDB read or write failed |
+
+**Causes:**
+- Browser in private/incognito mode with storage blocked
+- IndexedDB quota exceeded
+- Browser does not support IndexedDB
+
+The SDK continues normally when cache errors occur — results are simply not persisted.
+
+---
+
+### `UNSUPPORTED_BROWSER`
+
+| Property | Value |
+|---|---|
+| Recoverable | ❌ No — requires a modern browser |
+| When | Required browser APIs are unavailable |
+
+**Causes:**
+- Very old browser without WebAssembly or Canvas support
+- Restricted browser environment
+
+**How to handle:**
+```ts
+case "UNSUPPORTED_BROWSER":
+  showMessage("Your browser does not support virtual try-on. Please use a modern browser.");
+  break;
+```
+
+---
+
 ## Handling All Errors
 
 A complete error handler:

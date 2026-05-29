@@ -153,10 +153,11 @@ const {
 
 ```ts
 {
-  imageUrl: string;         // product image URL (required)
-  productType: ProductType; // product type (required)
-  gender: UserGender;       // required for person products, ignored for furniture
-  productId?: string;       // for caching/analytics (optional)
+  imageUrl: string;           // product image URL (required)
+  productType: ProductType;   // product type (required)
+  gender: UserGender;         // required for person products, ignored for furniture
+  productId?: string;         // for caching/analytics (optional)
+  abortSignal?: AbortSignal;  // cancel the in-progress request (optional)
 }
 ```
 

@@ -31,7 +31,8 @@ Add this to any HTML page and change the 3 values:
 <script>
   const BRAND_KEY = "gn_pk_yourbrand_xxx";        // your brand key
   const PRODUCT_IMAGE_URL = "https://...";        // product image URL
-  const PRODUCT_TYPE = "sunglasses";              // product type
+  const PRODUCT_TYPE = "sunglasses";              // product type (any string label)
+  const PRODUCT_CATEGORY = "eyewear";             // HP routing category (HpCategory)
 
   let sdk;
   window.Personalize.init({ auth: { publicKey: BRAND_KEY } })
@@ -57,6 +58,7 @@ Add this to any HTML page and change the 3 values:
       const result = await sdk.personalize({
         imageUrl: PRODUCT_IMAGE_URL,
         productType: PRODUCT_TYPE,
+        category: PRODUCT_CATEGORY,
         gender: "female"
       });
       document.getElementById("result").src = result.imageUrl;
@@ -81,8 +83,8 @@ Add this to any HTML page and change the 3 values:
   <Step title="Product Image URL">
     Replace with the URL of the product image on your page. Right-click the image -> Copy Image Address.
   </Step>
-  <Step title="Product Type">
-    Replace `"sunglasses"` with the correct type. See [Supported Products](/sdk/supported-products) for the full list.
+  <Step title="Product Type and Category">
+    Replace `"sunglasses"` with your product label (any string) and `"eyewear"` with the correct `HpCategory`. See [Supported Products](/sdk/supported-products) for the category mapping.
   </Step>
 </Steps>
 

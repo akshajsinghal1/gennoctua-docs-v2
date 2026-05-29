@@ -19,7 +19,7 @@ const sdk = await Personalize.init(config: SDKConfig): Promise<PersonalizeSDK>
 
 ### `sdk.ingestImages(files, onProgress?)`
 
-Processes uploaded photos. For **person products** (fashion, eyewear, footwear etc.) runs face detection, gender classification, and pose scoring. For **furniture products** runs on-device room detection (YOLOv8) to classify photos as bedroom, living room, or dining room. An LLM refinement pass then picks the single best photo per category.
+Processes uploaded photos. For **person products** (fashion, eyewear, footwear etc.) runs face detection, gender classification, and pose scoring. For **furniture products** runs on-device room detection (YOLOv11) to classify photos as bedroom, living room, or dining room. An LLM refinement pass then picks the single best photo per category.
 
 ```ts
 sdk.ingestImages(
@@ -70,8 +70,9 @@ user uploads photos → ingestImages() resolves → user clicks "Try On" → per
 ```ts
 sdk.personalize(opts: {
   imageUrl: string;
-  productType: ProductType;
-  gender: UserGender;
+  productType: string;
+  category: HpCategory;
+  gender?: UserGender;
   productId?: string;
   abortSignal?: AbortSignal;
 }): Promise<PersonalizationResult>
@@ -82,8 +83,9 @@ sdk.personalize(opts: {
 | Param | Type | Required | Description |
 |---|---|---|---|
 | `imageUrl` | `string` | ✅ | Product image URL |
-| `productType` | `ProductType` | ✅ | Type of product |
-| `gender` | `UserGender` | ✅ | Which profile photo to use. Ignored for furniture products. |
+| `productType` | `string` | ✅ | Descriptive label sent to HP (e.g. `"sunglasses"`, `"tops"`, `"co-ords"`) |
+| `category` | `HpCategory` | ✅ | HP routing category — determines which pipeline runs |
+| `gender` | `UserGender` | — | Which profile photo to use. Required for person products; omit when `category === "furniture"`. |
 | `productId` | `string` | — | Product ID for cache keying and analytics |
 | `abortSignal` | `AbortSignal` | — | Cancel the request |
 
@@ -103,6 +105,7 @@ const controller = new AbortController();
 const resultPromise = sdk.personalize({
   imageUrl,
   productType: "sunglasses",
+  category: "eyewear",
   gender: "female",
   abortSignal: controller.signal
 });
@@ -136,8 +139,9 @@ sdk.personalizeAll(
 type BatchProduct = {
   productId: string;
   imageUrl: string;
-  productType: ProductType;
-  gender: UserGender;
+  productType: string;
+  category: HpCategory;
+  gender?: UserGender;
 }
 ```
 
@@ -156,9 +160,9 @@ type BatchResult = {
 ```ts
 await sdk.personalizeAll(
   [
-    { productId: "sku-1", imageUrl: "https://brand.com/shoe1.jpg", productType: "footwear", gender: "female" },
-    { productId: "sku-2", imageUrl: "https://brand.com/shoe2.jpg", productType: "footwear", gender: "female" },
-    { productId: "sku-3", imageUrl: "https://brand.com/shirt.jpg", productType: "mens_clothing", gender: "male" },
+    { productId: "sku-1", imageUrl: "https://brand.com/shoe1.jpg", productType: "footwear", category: "footwear", gender: "female" },
+    { productId: "sku-2", imageUrl: "https://brand.com/shoe2.jpg", productType: "footwear", category: "footwear", gender: "female" },
+    { productId: "sku-3", imageUrl: "https://brand.com/shirt.jpg", productType: "mens_clothing", category: "clothing", gender: "male" },
   ],
   (result) => {
     if (result.status === "completed") {
@@ -295,13 +299,22 @@ sdk.on("error", (err: SDKError) => {
 | Code | Meaning | Recoverable |
 |---|---|---|
 | `AUTH_INVALID` | Token rejected by server | No — refresh token |
+| `AUTH_DOMAIN_NOT_ALLOWED` | Domain not authorised for public key | No — register domain |
 | `CONFIG_INVALID` | Invalid SDK configuration | No — fix config |
+| `PRODUCT_CONTEXT_NOT_FOUND` | Product info missing — no overrides provided | Yes — pass explicitly |
+| `PRODUCT_TYPE_NOT_FOUND` | `productType` not provided or inferred | Yes — pass explicitly |
+| `REQUIRED_USER_IMAGE_MISSING` | No uploaded photo for required category | Yes — prompt upload |
+| `UPLOAD_FAILED` | Image upload to storage failed | Yes — retry |
+| `SELECTION_FAILED` | Photo processing failed | Yes — try different photos |
+| `TAGGING_FAILED` | LLM profile-refinement failed (non-fatal) | Yes — SDK falls back |
 | `RATE_LIMITED_CLIENT` | Too many requests (client-side) | Yes — wait and retry |
 | `RATE_LIMITED_SERVER` | Too many requests (server-side) | Yes — wait and retry |
 | `PERSONALIZATION_JOB_FAILED` | AI generation failed | Yes — retry |
 | `PERSONALIZATION_JOB_TIMEOUT` | Generation took too long | Yes — retry |
+| `PERSONALIZATION_CANCELLED` | Request cancelled by caller | Yes — user can retry |
 | `NETWORK_ERROR` | Network connectivity issue | Yes — check connection |
-| `SELECTION_FAILED` | Photo processing failed | Yes — try different photos |
+| `CACHE_ERROR` | IndexedDB read/write failed (non-fatal) | Yes — SDK continues |
+| `UNSUPPORTED_BROWSER` | Required browser APIs unavailable | No — upgrade browser |
 
 ---
 
@@ -327,26 +340,36 @@ type AuthConfig = ProxyAuthConfig | PublicKeyAuthConfig;
 
 ### `ProductType`
 
+`productType` accepts **any string** — it is a descriptive label forwarded to HP as-is. Well-known values (used as examples throughout this docs) include:
+
 ```ts
-type ProductType =
-  | "sunglasses"
-  | "eyeglasses"
-  | "mens_clothing"
-  | "womens_clothing"
-  | "kids_clothing"
+// productType is open — any string is accepted, e.g. "tops", "dresses", "co-ords"
+// Common well-known values:
+"sunglasses" | "eyeglasses"
+"mens_clothing" | "womens_clothing" | "kids_clothing"
+"footwear"
+"jewellery" | "earrings"
+"bags"
+"makeup_lipstick" | "makeup_foundation" | "makeup_mascara"
+"bedroom_furniture" | "living_room_furniture" | "dining_room_furniture"
+"bathroom_furniture" | "kitchen_furniture" | "home_decor"
+```
+
+HP routing is controlled by `category` (`HpCategory`), not by `productType`.
+
+### `HpCategory`
+
+Required field on `personalize()` and `BatchProduct`. Tells HP which pipeline to run.
+
+```ts
+type HpCategory =
+  | "clothing"
   | "footwear"
+  | "eyewear"
   | "jewellery"
-  | "earrings"
-  | "bags"
-  | "makeup_lipstick"
-  | "makeup_foundation"
-  | "makeup_mascara"
-  | "bedroom_furniture"
-  | "bathroom_furniture"
-  | "living_room_furniture"
-  | "dining_room_furniture"
-  | "kitchen_furniture"
-  | "home_decor";
+  | "accessories"
+  | "makeup"
+  | "furniture";
 ```
 
 ### `PersonalizationMode`
@@ -367,7 +390,7 @@ type PersonalizationMode =
 
 ### `UserGender`
 
-Required for all person product try-ons. Tells the SDK which profile photo to use. Ignored for furniture/room products.
+Required for person product try-ons (`category !== "furniture"`). Tells the SDK which profile photo to use. Omit when `category === "furniture"`.
 
 ```ts
 type UserGender = "male" | "female" | "kid_boy" | "kid_girl";

@@ -276,6 +276,7 @@ document.getElementById("tryOnBtn").addEventListener("click", async () => {
     const result = await sdk.personalize({
       imageUrl: "https://yourbrand.com/product.jpg",
       productType: "sunglasses",
+      category: "eyewear",
       gender: "female",
       productId: "sku-123"
     });
