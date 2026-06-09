@@ -450,10 +450,46 @@ type PersonalizationResult = {
 ```ts
 type SelectionSummary = {
   availableCategories: UserImageCategory[];
-  missingCategories: UserImageCategory[];
-  totalUploaded: number;
-  totalSelected: number;
+  missingCategories:   UserImageCategory[];
+  totalUploaded:       number;
+  totalSelected:       number;
+  /**
+   * Why photos were skipped — only includes reasons with count > 0.
+   * Empty when all photos were accepted, in furniture-only mode, or on cache restore.
+   */
+  rejectionReasons: RejectionReason[];
 };
+
+type RejectionReason = {
+  reason: RejectionReasonCode;
+  count:  number;
+};
+
+type RejectionReasonCode =
+  | "no_face_detected"       // face-api found no face
+  | "multiple_people"        // more than one person detected (face or body level)
+  | "low_gender_confidence"  // face found but gender was ambiguous
+  | "not_front_facing"       // body detected but person is turned sideways / angled
+  | "no_full_body";          // facing camera but full body not visible (too cropped / far)
+```
+
+**Example — showing user-facing guidance based on rejection reasons:**
+
+```ts
+const summary = await sdk.ingestImages(files);
+
+for (const { reason, count } of summary.rejectionReasons) {
+  if (reason === "multiple_people")
+    showToast(`${count} photo(s) skipped — please upload individual photos, not group shots.`);
+  if (reason === "no_face_detected")
+    showToast(`${count} photo(s) skipped — no face visible. Use a clear, well-lit photo.`);
+  if (reason === "low_gender_confidence")
+    showToast(`${count} photo(s) skipped — face unclear. Try a front-facing photo with good lighting.`);
+  if (reason === "not_front_facing")
+    showToast(`${count} photo(s) skipped — please face the camera directly.`);
+  if (reason === "no_full_body")
+    showToast(`${count} photo(s) skipped — make sure your full body is in frame.`);
+}
 ```
 
 ---

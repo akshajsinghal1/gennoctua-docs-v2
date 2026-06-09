@@ -79,10 +79,19 @@ const {
 ```ts
 {
   availableCategories: UserImageCategory[];
-  missingCategories: UserImageCategory[];
-  totalUploaded: number;
-  totalSelected: number;
+  missingCategories:   UserImageCategory[];
+  totalUploaded:       number;
+  totalSelected:       number;
+  /** Why photos were skipped. Only includes reasons with count > 0. */
+  rejectionReasons:    RejectionReason[];
 }
+
+// RejectionReason
+{ reason: RejectionReasonCode; count: number }
+
+// RejectionReasonCode
+"no_face_detected" | "multiple_people" | "low_gender_confidence"
+| "not_front_facing" | "no_full_body"
 ```
 
 ### Example
