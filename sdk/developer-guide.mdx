@@ -218,9 +218,54 @@ const summary = await sdk.ingestImages(
 );
 
 // summary.availableCategories - e.g. ["female_full_body", "female_face_closeup"]
-// summary.missingCategories - categories not found
-// summary.totalUploaded - total valid photos processed
-// summary.totalSelected - number of profiles selected
+// summary.missingCategories   - categories not found
+// summary.totalUploaded       - total valid photos processed
+// summary.totalSelected       - number of profiles selected
+// summary.rejectionReasons    - why photos were skipped (only non-zero counts)
+```
+
+**Handling rejection reasons — show users why their photos didn't work:**
+
+```js
+// Check for invalid file types BEFORE calling ingestImages
+const allFiles = Array.from(fileInput.files);
+const invalidFiles = allFiles.filter(f =>
+  !f.type.startsWith("image/") && !/\.(jpe?g|png|webp|heic)$/i.test(f.name)
+);
+if (invalidFiles.length === allFiles.length) {
+  showMessage("Please upload photos in JPEG or PNG format.");
+  return;
+}
+
+// Run the pipeline
+let summary;
+try {
+  summary = await sdk.ingestImages(fileInput.files, onProgress);
+} catch (e) {
+  showMessage("Something went wrong. Please try again.");
+  return;
+}
+
+// No profile selected — tell the user why
+if (summary.totalSelected === 0) {
+  const REJECTION_MESSAGES = {
+    no_face_detected:      "No face detected. Please upload a clear, well-lit photo facing the camera.",
+    multiple_people:       "Group photos aren't supported. Please upload individual photos only.",
+    low_gender_confidence: "Couldn't read your face clearly. Try a well-lit, front-facing photo.",
+    not_front_facing:      "Please face the camera directly — side or angled photos won't work.",
+    no_full_body:          "Make sure your full body is visible from head to toe.",
+  };
+
+  const top = summary.rejectionReasons.sort((a, b) => b.count - a.count)[0];
+  const message = top
+    ? (REJECTION_MESSAGES[top.reason] ?? "None of your photos were suitable. Try uploading clear, individual, front-facing photos.")
+    : "None of your photos were suitable. Try uploading clear, individual, front-facing photos.";
+
+  showMessage(message);
+  return;
+}
+
+// Profile selected — proceed to try-on
 ```
 
 ### `sdk.personalize(opts)`
