@@ -245,6 +245,34 @@ sdk.on("personalization:failed", ({ error, code }) => {
 
 ---
 
+### `personalization:slow`
+
+Fired when a try-on job is still polling after `slowThresholdMs` (default 15s) with no result. Use this to show a "taking a moment" message. The timer is cleared immediately if the result arrives, the job fails, or the request is cancelled — so this never fires on fast results.
+
+```ts
+sdk.on("personalization:slow", ({ jobId, elapsedMs }) => {
+  showMessage("Personalization is taking a moment. Keep browsing—your images will update automatically.");
+});
+
+sdk.on("personalization:completed", () => {
+  hideMessage(); // hide the slow message when result arrives
+});
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `jobId` | `string` | The polling job ID |
+| `elapsedMs` | `number` | How many ms have elapsed since polling started |
+
+Configure the threshold in `Personalize.init()`:
+```ts
+Personalize.init({
+  slowThresholdMs: 15000, // default — change to suit your UX
+})
+```
+
+---
+
 ### `personalization:cancelled`
 
 Fired when the request is cancelled via `AbortController`.
@@ -393,6 +421,7 @@ type AllEvents = SDKEventName;
 // "personalization:job_created" | "personalization:polling_started" |
 // "personalization:completed" | "personalization:failed" |
 // "personalization:cancelled" | "personalization:rate_limited" |
+// "personalization:slow" |
 // "product:resolved" | "product:failed" |
 // "eligibility:eligible" | "eligibility:ineligible" |
 // "view:changed" | "error"
