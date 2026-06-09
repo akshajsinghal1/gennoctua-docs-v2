@@ -247,29 +247,47 @@ sdk.on("personalization:failed", ({ error, code }) => {
 
 ### `personalization:slow`
 
-Fired when a try-on job is still polling after `slowThresholdMs` (default 15s) with no result. Use this to show a "taking a moment" message. The timer is cleared immediately if the result arrives, the job fails, or the request is cancelled — so this never fires on fast results.
+Fired once after `slowThresholdMs` (default 15s) if try-on results haven't all arrived yet. Works for both single `personalize()` and batch `personalizeAll()` — one timer per call, not per job. The timer clears immediately on completion so this never fires on fast results.
+
+Pair with `personalization:all_completed` to hide the message when everything is done.
 
 ```ts
-sdk.on("personalization:slow", ({ jobId, elapsedMs }) => {
+sdk.on("personalization:slow", ({ elapsedMs }) => {
   showMessage("Personalization is taking a moment. Keep browsing—your images will update automatically.");
 });
 
-sdk.on("personalization:completed", () => {
-  hideMessage(); // hide the slow message when result arrives
+sdk.on("personalization:all_completed", () => {
+  hideMessage();
 });
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `jobId` | `string` | The polling job ID |
-| `elapsedMs` | `number` | How many ms have elapsed since polling started |
+| `elapsedMs` | `number` | How many ms have elapsed since the call started |
 
 Configure the threshold in `Personalize.init()`:
 ```ts
 Personalize.init({
-  slowThresholdMs: 15000, // default — change to suit your UX
+  slowThresholdMs: 15000, // default 15s — adjust to suit your UX
 })
 ```
+
+---
+
+### `personalization:all_completed`
+
+Fired when `personalize()` or `personalizeAll()` fully finishes — whether jobs succeeded, failed, or were ineligible. Use this to hide the slow message and clean up any loading state.
+
+```ts
+sdk.on("personalization:all_completed", ({ count }) => {
+  hideMessage();
+  hideSpinner();
+});
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `count` | `number` | Total number of products processed |
 
 ---
 
@@ -421,7 +439,7 @@ type AllEvents = SDKEventName;
 // "personalization:job_created" | "personalization:polling_started" |
 // "personalization:completed" | "personalization:failed" |
 // "personalization:cancelled" | "personalization:rate_limited" |
-// "personalization:slow" |
+// "personalization:slow" | "personalization:all_completed" |
 // "product:resolved" | "product:failed" |
 // "eligibility:eligible" | "eligibility:ineligible" |
 // "view:changed" | "error"
