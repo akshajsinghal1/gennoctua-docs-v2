@@ -47,6 +47,8 @@
             "group": "SDK Reference",
             "pages": [
               "sdk/developer-guide",
+              "sdk/versioning",
+              "sdk/measurement-handoff",
               "sdk/configuration",
               "sdk/api-reference",
               "sdk/events",

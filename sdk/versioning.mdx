@@ -1,0 +1,37 @@
+---
+title: Versioning
+description: How to pin the Gennoctua web SDK without breaking production sites
+---
+
+## Always pin a version
+
+Never load `@main` in production. Use a **git tag** or **commit hash**:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk-v2@9687b9e/dist/cdn/personalize.min.global.js"></script>
+```
+
+## Current releases
+
+| Version | CDN pin | What's new |
+|---------|---------|------------|
+| **0.1.x** | `@9687b9e` | Profile selection + VTO (stable, used by live retail sites) |
+| **0.2.0** | `@v0.2.0` | Measurement handoff — `scanIndex`, body/face photo shortlists without re-scanning |
+
+## Opting into v0.2
+
+Change only your CDN URL (or npm version):
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk-v2@v0.2.0/dist/cdn/personalize.min.global.js"></script>
+```
+
+Then use the new [Measurement handoff](/sdk/measurement-handoff) APIs in your site integration.
+
+Existing v0.1 integrations **keep working** — v0.2 adds optional methods; it does not remove profile selection or VTO.
+
+## npm
+
+```bash
+npm install @gennoctua/personalize-core@0.2.0
+```

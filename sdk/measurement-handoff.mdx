@@ -1,0 +1,73 @@
+---
+title: Measurement handoff (v0.2+)
+description: Single-scan body and face photo picks for sizing APIs — no second ML pass in your app
+---
+
+## Problem (v0.1)
+
+After `ingestImages()`, many sites re-ran face-api + MediaPipe on the same upload to pick body/face photos for sizing. That duplicated work and caused iOS memory pressure.
+
+## Solution (v0.2)
+
+The SDK persists a **`scanIndex`** during ingest — every solo person photo with face + pose scores. Your app calls sizing APIs using shortlists derived from that index **without loading models again**.
+
+```
+ingestImages()  →  scanIndex saved
+       ↓
+measurement.prepare()  →  { female: { bodyPhotos, facePhotos }, male: { ... } }
+       ↓
+Your site POSTs to /api/bodysizing/measure and /api/facesizing/measure_face
+```
+
+## API
+
+Requires SDK **v0.2.0+** (`@v0.2.0` on jsDelivr).
+
+```javascript
+const sdk = await Personalize.init({ /* auth */ });
+
+const summary = await sdk.ingestImages(files, onProgress);
+console.log(summary.scanIndexCount); // photos scanned for sizing
+
+// After ingest (or after restoreProfile if scanIndex was cached):
+const shortlists = sdk.measurement.prepare({
+  bodyLimit: 3,  // default 3
+  faceLimit: 5,  // default 5
+});
+
+// shortlists.female.bodyPhotos  → File[] for bodysizing
+// shortlists.female.facePhotos    → File[] for face/eyewear sizing
+// shortlists.female.bodyTier      → e.g. "strict_full_body"
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `measurement.getScanIndex()` | Raw scan entries (scores + blobs) |
+| `measurement.cluster()` | Group photos by face identity |
+| `measurement.getPhotoShortlists(opts?)` | Per-profile body + face picks |
+| `measurement.prepare(opts?)` | Alias for `getPhotoShortlists` |
+
+## What this does **not** do yet (v0.3 roadmap)
+
+- **Front + side pairing** for the proportion-ensemble `measure_fs` API
+- Calling sizing servers directly from the SDK
+
+Today, shortlists are **front-facing full-body / portrait picks** — compatible with the existing Digital Tailor `/measure` endpoint (multiple images, optional height).
+
+Height remains your site's job (UI + `height_mm` on the sizing POST).
+
+## Restore after reload
+
+`restoreProfile()` reloads `scanIndex` from IndexedDB when available. Call `measurement.prepare()` without re-running ingest.
+
+## Westside bridge
+
+See `personalizeSdk.js` on westside-5806:
+
+```javascript
+const shortlists = await PersonalizeSdkBridge.prepareMeasurementShortlists();
+```
+
+Falls back to legacy app.js scanning if SDK < 0.2.
