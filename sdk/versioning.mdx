@@ -17,6 +17,9 @@ Never load `@main` in production. Use a **git tag** or **commit hash**:
 |---------|---------|------------|
 | **0.1.x** | `@9687b9e` | Profile selection + VTO (stable, used by live retail sites) |
 | **0.2.0** | `@v0.2.0` | Measurement handoff — `scanIndex`, body/face photo shortlists without re-scanning |
+| **0.2.1** | `@v0.2.1` | `scanIndex` face descriptors fix (loads faceRecognitionNet) |
+| **0.3.0** | `@v0.3.0` | **SDK-side front + side pair selection** — `measurement.getBodyPair(gender)` for the `measure_fs` sizing method; adds `armsAway` + `sideRank` per photo |
+| **0.3.1** | `@v0.3.1` | Side-detection fix — detect a profile by edge-on shoulder ratio, not the front-facing label |
 
 ## Opting into v0.2
 
@@ -29,6 +32,14 @@ Change only your CDN URL (or npm version):
 Then use the new [Measurement handoff](/sdk/measurement-handoff) APIs in your site integration.
 
 Existing v0.1 integrations **keep working** — v0.2 adds optional methods; it does not remove profile selection or VTO.
+
+## Opting into v0.3
+
+Pin `@v0.3.1` and use [`measurement.getBodyPair(gender)`](/sdk/measurement-handoff#v0-3-sdk-side-front-side-selection) to get the front + side pair for the `measure_fs` sizing method. Additive over v0.2 — shortlists and profile selection are unchanged.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/akshajsinghal1/gennoctua-sdk-v2@v0.3.1/dist/cdn/personalize.min.global.js"></script>
+```
 
 ## npm
 

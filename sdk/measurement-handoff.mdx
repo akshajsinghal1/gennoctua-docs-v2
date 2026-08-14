@@ -1,6 +1,6 @@
 ---
-title: Measurement handoff (v0.2+)
-description: Single-scan body and face photo picks for sizing APIs — no second ML pass in your app
+title: Measurement handoff (v0.2 → v0.3)
+description: Single-scan body and face photo picks — plus SDK-side front+side pairing — for sizing APIs, no second ML pass in your app
 ---
 
 ## Problem (v0.1)
@@ -48,15 +48,53 @@ const shortlists = sdk.measurement.prepare({
 | `measurement.cluster()` | Group photos by face identity |
 | `measurement.getPhotoShortlists(opts?)` | Per-profile body + face picks |
 | `measurement.prepare(opts?)` | Alias for `getPhotoShortlists` |
+| `measurement.getBodyPair(gender)` | **v0.3+** — best front **+ side** pair for `measure_fs` |
 
-## What this does **not** do yet (v0.3 roadmap)
+## v0.3 — SDK-side front + side selection
 
-- **Front + side pairing** for the proportion-ensemble `measure_fs` API
-- Calling sizing servers directly from the SDK
+`v0.3.0+` (`@v0.3.1` on jsDelivr) picks the **front + side pair** for the
+front+side+height `measure_fs` method entirely in the SDK, reusing the pose
+landmarks already scored during ingest — **no `/api/select` round-trip and no
+second ML pass**. One client pose pass now feeds try-on, face, **and** body.
 
-Today, shortlists are **front-facing full-body / portrait picks** — compatible with the existing Digital Tailor `/measure` endpoint (multiple images, optional height).
+Two new per-photo signals are added to every `scanIndex` entry:
 
-Height remains your site's job (UI + `height_mm` on the sizing POST).
+- **`armsAway`** — both upper arms held slightly away from the torso (arm
+  abduction ≥ 5°), so the silhouette separates the arms from the body.
+- **`sideRank`** — `1` when a photo is a true side/profile **and** full-body
+  standing. Detected by **edge-on shoulder width** (shoulder-width ÷ torso-height
+  &lt; 0.45), *not* the front-facing label — a real profile scores in the
+  "angled" band, so the label misses it.
+
+```javascript
+const pair = sdk.measurement.getBodyPair("female");
+// {
+//   front: File | null,        // best front-facing, full-body, arms-away
+//   side:  File | null,        // best true-profile, full-body standing
+//   frontOk: boolean,          // front passes the gate (arms-away required)
+//   sideOk:  boolean,          // a usable side was found
+//   reasons: { front: string[], side: string[] },   // user-facing guidance
+//   candidates: { front: [...], side: [...] },       // for an override picker
+//   action: "measure" | "ask_front" | "ask_side" | "ask_both",
+// }
+
+// Front, side and height are three independent prerequisites — body sizing
+// runs ONLY when all three are present:
+if (pair.frontOk && pair.sideOk && heightCm) {
+  // POST pair.front, pair.side, height_cm → /measure_fs (27 measurements)
+}
+```
+
+Also exported standalone: `import { selectBodyPair } from "@gennoctua/personalize-core"` → `selectBodyPair(scanIndex, gender)`.
+
+### Two sizing engines
+
+| Endpoint | Inputs | Use |
+|--------|--------|-----|
+| Digital Tailor `/measure` | front-only + optional `height_mm` | legacy (v0.2 shortlists) |
+| `measure_fs` | **front + side + height_cm** | **v0.3** — 27 tailor measurements |
+
+Height remains your site's job (UI + `height_cm` on the `measure_fs` POST).
 
 ## Restore after reload
 
@@ -67,7 +105,13 @@ Height remains your site's job (UI + `height_mm` on the sizing POST).
 See `personalizeSdk.js` on westside-5806:
 
 ```javascript
+// v0.2 — front-facing shortlists (Digital Tailor)
 const shortlists = await PersonalizeSdkBridge.prepareMeasurementShortlists();
+
+// v0.3 — front + side pair for measure_fs
+const pair = await PersonalizeSdkBridge.getBodyPair("female");
 ```
 
-Falls back to legacy app.js scanning if SDK < 0.2.
+`prepareMeasurementShortlists` falls back to legacy app.js scanning if SDK &lt; 0.2.
+`getBodyPair` returns `null` if SDK &lt; 0.3, so the bridge falls back to the
+server `/api/select` endpoint.
